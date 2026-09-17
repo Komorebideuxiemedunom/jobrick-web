@@ -1,0 +1,36 @@
+{
+  "name": "@jobrick/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "build": "vite build",
+    "start": "node serve.js",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@effect/platform": "0.97.2",
+    "@jobrick/core": "workspace:*",
+    "@jobrick/db": "workspace:*",
+    "@tanstack/react-query": "5.103.1",
+    "@tanstack/react-router": "1.170.38",
+    "@tanstack/react-start": "1.168.56",
+    "effect": "3.22.2",
+    "gsap": "3.15.0",
+    "leaflet": "1.9.4",
+    "lenis": "1.3.26",
+    "mammoth": "1.12.3",
+    "pdfjs-dist": "6.3.289",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/leaflet": "1.9.22",
+    "@types/node": "22.20.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "vite": "8.3.0",
+    "vite-tsconfig-paths": "6.1.1"
+  }
+}

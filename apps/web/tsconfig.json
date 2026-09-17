@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "vite/client"
+    ],
+    "moduleDetection": "force"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.d.ts",
+    "vite.config.ts"
+  ]
+}
