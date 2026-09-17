@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+**/dist
+**/.output
+**/.vite
+**/.tanstack
+apps/web/src/routeTree.gen.ts
+.git
+.env
+.env.*
+!.env.example
+postgres-data
+*.log
+.DS_Store

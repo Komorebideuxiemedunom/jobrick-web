@@ -1,0 +1,27 @@
+# Dependances
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+.output/
+.nitro/
+.tanstack/
+.vite/
+apps/web/src/routeTree.gen.ts
+*.tsbuildinfo
+
+# Environnement — ne jamais committer : jetons Discord, mot de passe Postgres
+.env
+.env.*
+!.env.example
+
+# Donnees locales
+postgres-data/
+*.log
+
+# Outils
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

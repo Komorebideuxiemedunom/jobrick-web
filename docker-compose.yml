@@ -1,0 +1,26 @@
+# Postgres de developpement, en local.
+#
+# La production (Dokploy) a son propre service Postgres : ce fichier ne sert
+# qu'a avoir une base jetable sous la main pendant le developpement.
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jobrick
+      POSTGRES_PASSWORD: jobrick
+      POSTGRES_DB: jobrick
+    ports:
+      # 5434 par defaut : un Postgres tourne souvent deja sur 5432.
+      # Surchargeable avec POSTGRES_PORT dans .env.
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobrick -d jobrick"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:

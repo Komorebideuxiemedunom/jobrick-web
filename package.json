@@ -1,0 +1,20 @@
+{
+  "name": "jobrick",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.5.2",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "pnpm --filter @jobrick/web dev",
+    "dev:bot": "pnpm --filter @jobrick/bot dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @jobrick/db migrate"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "22.20.3"
+  }
+}
