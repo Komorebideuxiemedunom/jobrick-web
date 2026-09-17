@@ -38,7 +38,10 @@
 
   document.getElementById("notify-discord").addEventListener("change", (e) => {
     document.getElementById("discord-webhook").hidden = !e.target.checked;
+    updateOnboarding();
   });
+  document.getElementById("notify-email").addEventListener("change", updateOnboarding);
+  document.getElementById("job-keywords").addEventListener("input", updateOnboarding);
 
   // ------------------------------------------------------------------
   // CV : drag & drop + upload vers Supabase Storage
@@ -82,6 +85,8 @@
     pendingCvFile = file;
     showCvFilled(file.name + " (pas encore enregistre)");
     cvStatus.textContent = "";
+    updateAtsButtonState();
+    updateOnboarding();
   }
 
   // ------------------------------------------------------------------
@@ -114,6 +119,7 @@
     zone.circle = circle;
     zones.push(zone);
     renderZonesList();
+    updateOnboarding();
   }
 
   function removeZone(zone) {
@@ -121,6 +127,7 @@
     map.removeLayer(zone.circle);
     zones = zones.filter((z) => z !== zone);
     renderZonesList();
+    updateOnboarding();
   }
 
   function renderZonesList() {
@@ -192,6 +199,114 @@
   }
 
   // ------------------------------------------------------------------
+  // Onboarding : checklist de mise en route
+  // ------------------------------------------------------------------
+  function updateOnboarding() {
+    const card = document.getElementById("onboarding-card");
+    if (!card) return;
+    const steps = [
+      { label: "CV ajoute", done: !!(pendingCvFile || profile?.cv_filename) },
+      { label: "Zone de recherche ajoutee", done: zones.length > 0 },
+      { label: "Mots-cles renseignes", done: !!document.getElementById("job-keywords").value.trim() },
+      { label: "Canal de notification choisi", done: document.getElementById("notify-email").checked || document.getElementById("notify-discord").checked },
+    ];
+    const done = steps.filter((s) => s.done).length;
+    document.getElementById("onboarding-count").textContent = `${done}/4`;
+    document.getElementById("onboarding-bar-fill").style.width = `${(done / 4) * 100}%`;
+    document.getElementById("onboarding-steps").innerHTML = steps.map((s) => `
+      <span class="onboarding-step ${s.done ? "is-done" : ""}"><span class="dot"></span>${s.label}</span>
+    `).join("");
+    card.hidden = done === 4;
+  }
+  updateOnboarding();
+
+  // ------------------------------------------------------------------
+  // Nav : ancres de section actives au scroll
+  // ------------------------------------------------------------------
+  function initNavScrollspy() {
+    const links = document.querySelectorAll(".nav-pill-links a");
+    if (!links.length || !window.IntersectionObserver) return;
+    const map2 = {};
+    links.forEach((a) => { map2[a.getAttribute("href").slice(1)] = a; });
+    const sections = Object.keys(map2).map((id) => document.getElementById(id)).filter(Boolean);
+    if (!sections.length) return;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          Object.values(map2).forEach((a) => a.classList.remove("is-active"));
+          map2[entry.target.id].classList.add("is-active");
+        }
+      });
+    }, { rootMargin: "-40% 0px -50% 0px", threshold: 0 });
+    sections.forEach((s) => observer.observe(s));
+  }
+  initNavScrollspy();
+
+  // ------------------------------------------------------------------
+  // Scanner ATS
+  // ------------------------------------------------------------------
+  const btnScan = document.getElementById("btn-scan-ats");
+  const atsStatus = document.getElementById("ats-status");
+  const atsPanel = document.getElementById("ats-panel");
+
+  function updateAtsButtonState() {
+    btnScan.disabled = !(pendingCvFile || profile?.cv_path);
+  }
+  updateAtsButtonState();
+
+  function renderAtsResult(resultat) {
+    atsPanel.hidden = false;
+    if (resultat.score === null) {
+      atsPanel.innerHTML = `<p class="ats-note">${escapeHtml(resultat.checks[0].detail || resultat.checks[0].label)}</p>`;
+      return;
+    }
+    const niveauLabel = { good: "ATS-friendly", warn: "A ameliorer", bad: "Risque eleve" }[resultat.niveau];
+    atsPanel.innerHTML = `
+      <div class="ats-score-row">
+        <div class="ats-score-badge is-${resultat.niveau}">${resultat.score}</div>
+        <div class="ats-score-label"><strong>${niveauLabel}</strong><br>Score indicatif sur 100</div>
+      </div>
+      <ul class="ats-checks">
+        ${resultat.checks.map((c) => `<li class="${c.pass ? "" : "is-fail"}"><span class="ats-icon">${c.pass ? "✓" : "✕"}</span>${escapeHtml(c.label)}</li>`).join("")}
+      </ul>
+      <p class="ats-note">Analyse indicative, executee dans ton navigateur — aucun contenu du CV n'est envoye a un serveur externe. Elle ne garantit pas le passage d'un ATS reel, mais repere les blocages les plus frequents.</p>
+    `;
+  }
+
+  btnScan.addEventListener("click", async () => {
+    if (typeof window.scanCV !== "function") {
+      atsStatus.textContent = "Scanner indisponible pour le moment.";
+      atsStatus.className = "field-status field-status-error";
+      return;
+    }
+    btnScan.disabled = true;
+    atsStatus.textContent = "Analyse en cours…";
+    atsStatus.className = "field-status";
+    atsPanel.hidden = true;
+    try {
+      let blob, filename;
+      if (pendingCvFile) {
+        blob = pendingCvFile;
+        filename = pendingCvFile.name;
+      } else {
+        const { data, error } = await supa.storage.from("cvs").download(profile.cv_path);
+        if (error) throw error;
+        blob = data;
+        filename = profile.cv_filename;
+      }
+      const resultat = await window.scanCV(blob, filename, document.getElementById("job-keywords").value);
+      renderAtsResult(resultat);
+      atsStatus.textContent = "";
+    } catch (err) {
+      console.error("scan ATS:", err);
+      atsStatus.textContent = "Erreur pendant l'analyse.";
+      atsStatus.className = "field-status field-status-error";
+    } finally {
+      updateAtsButtonState();
+    }
+  });
+
+  // ------------------------------------------------------------------
   // Enregistrer
   // ------------------------------------------------------------------
   const btnSave = document.getElementById("btn-save");
@@ -247,7 +362,10 @@
         if (zErr) throw zErr;
       }
 
+      profile = { ...(profile || {}), cv_path: cvPath, cv_filename: cvFilename };
       pendingCvFile = null;
+      updateAtsButtonState();
+      updateOnboarding();
       saveStatus.textContent = "";
       btnSave.classList.remove("is-loading");
       btnSave.classList.add("is-success");
@@ -268,7 +386,8 @@
   });
 
   // ------------------------------------------------------------------
-  // Resultats : skeleton, tri, filtre, marquage "vu", export CSV
+  // Resultats : skeleton, tri, filtre, marquage "vu", export CSV,
+  // statut "postule", reseautage, relance
   // ------------------------------------------------------------------
   const resultsContainer = document.getElementById("results-list");
   const sortSelect = document.getElementById("results-sort");
@@ -286,8 +405,41 @@
     </div>
   `).join("");
 
+  function updateStats() {
+    const semaineDepuis = Date.now() - 7 * 24 * 3600 * 1000;
+    const visibles = allResults.filter((r) => r.interet !== false);
+    document.getElementById("stat-nouvelles").textContent = visibles.filter((r) => !r.vu).length;
+    document.getElementById("stat-semaine").textContent = visibles.filter((r) => r.vu && new Date(r.created_at).getTime() >= semaineDepuis).length;
+    document.getElementById("stat-attente").textContent = visibles.filter((r) => r.postule).length;
+  }
+
+  function reseauPanelHtml(employeur) {
+    const q = encodeURIComponent(employeur || "");
+    return `
+      <div class="reseau-panel" hidden>
+        <a href="https://www.linkedin.com/search/results/people/?keywords=${q}%20CEO" target="_blank" rel="noopener noreferrer">Chercher le/la CEO sur LinkedIn →</a>
+        <a href="https://www.linkedin.com/search/results/people/?keywords=${q}%20RH%20recrutement" target="_blank" rel="noopener noreferrer">Chercher RH / recrutement sur LinkedIn →</a>
+        <a href="https://www.linkedin.com/search/results/companies/?keywords=${q}" target="_blank" rel="noopener noreferrer">Voir la page entreprise sur LinkedIn →</a>
+      </div>
+    `;
+  }
+
+  function relanceHtml(r) {
+    const SEPT_JOURS = 7 * 24 * 3600 * 1000;
+    if (!r.postule || !r.postule_at) return "";
+    if (Date.now() - new Date(r.postule_at).getTime() < SEPT_JOURS) return "";
+    const message = `Bonjour, je me permets de relancer suite a ma candidature pour le poste de ${r.titre || "..."} chez ${r.employeur || "..."} — je reste tres interesse(e) et disponible pour en echanger. Bonne journee.`;
+    return `
+      <button class="chip-relance relance-btn" data-id="${r.id}">Relance conseillee (J+7)</button>
+      <div class="relance-panel" hidden>
+        Suggestion de message a copier :
+        <textarea rows="3" readonly>${escapeHtml(message)}</textarea>
+      </div>
+    `;
+  }
+
   function renderResults() {
-    let list = allResults.slice();
+    let list = allResults.filter((r) => r.interet !== false);
     if (hideSeenCheckbox.checked) list = list.filter((r) => !r.vu);
     if (sortSelect.value === "score") {
       list.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
@@ -299,45 +451,95 @@
       resultsContainer.innerHTML = allResults.length
         ? `<p class="empty-state">Rien a afficher avec ce filtre.</p>`
         : `<p class="empty-state">Rien pour l'instant — la veille tourne deux fois par jour, reviens un peu plus tard.</p>`;
+      updateStats();
       return;
     }
 
     resultsContainer.innerHTML = list.map((r) => `
-      <a class="result-item ${r.vu ? "" : "is-new"}" data-id="${r.id}" href="${r.url}" target="_blank" rel="noopener noreferrer">
-        <div class="result-score">${r.score ?? "–"}</div>
-        <div class="result-body">
-          <div class="result-title-row">
-            <div class="result-title">${escapeHtml(r.titre || "Sans titre")}</div>
-            ${r.vu ? "" : `<span class="result-new-badge">Nouveau</span>`}
+      <div class="result-item ${r.vu ? "" : "is-new"}" data-id="${r.id}">
+        <a class="result-link" href="${r.url}" target="_blank" rel="noopener noreferrer">
+          <div class="result-score">${r.score ?? "–"}</div>
+          <div class="result-body">
+            <div class="result-title-row">
+              <div class="result-title">${escapeHtml(r.titre || "Sans titre")}</div>
+              ${r.vu ? "" : `<span class="result-new-badge">Nouveau</span>`}
+            </div>
+            <div class="result-meta">${escapeHtml(r.employeur || "")} · ${escapeHtml(r.lieu || "")}</div>
+            ${r.raison ? `<div class="result-reason">${escapeHtml(r.raison)}</div>` : ""}
           </div>
-          <div class="result-meta">${escapeHtml(r.employeur || "")} · ${escapeHtml(r.lieu || "")}</div>
-          ${r.raison ? `<div class="result-reason">${escapeHtml(r.raison)}</div>` : ""}
+        </a>
+        <div class="result-actions">
+          <button class="chip-btn postule-btn ${r.postule ? "is-active" : ""}" data-id="${r.id}">${r.postule ? "Postule ✓" : "Marquer postule"}</button>
+          <button class="chip-btn reseau-btn" data-id="${r.id}">Reseautage</button>
+          ${relanceHtml(r)}
         </div>
-      </a>
+        ${reseauPanelHtml(r.employeur)}
+      </div>
     `).join("");
 
-    resultsContainer.querySelectorAll(".result-item").forEach((el) => {
-      el.addEventListener("click", () => markAsSeen(el.dataset.id), { once: true });
-    });
+    updateStats();
   }
 
   async function markAsSeen(id) {
     const item = allResults.find((r) => r.id === id);
     if (!item || item.vu) return;
     item.vu = true;
+    updateStats();
     const { error } = await supa.from("job_results").update({ vu: true }).eq("id", id);
     if (error) console.error("marquage vu:", error);
   }
+
+  async function togglePostule(id, btn) {
+    const item = allResults.find((r) => r.id === id);
+    if (!item) return;
+    item.postule = !item.postule;
+    item.postule_at = item.postule ? new Date().toISOString() : null;
+    btn.classList.toggle("is-active", item.postule);
+    btn.textContent = item.postule ? "Postule ✓" : "Marquer postule";
+    updateStats();
+    const { error } = await supa.from("job_results").update({ postule: item.postule, postule_at: item.postule_at }).eq("id", id);
+    if (error) console.error("statut postule:", error);
+  }
+
+  // Delegation d'evenements : reste valide apres chaque re-rendu de la liste.
+  resultsContainer.addEventListener("click", (e) => {
+    const link = e.target.closest(".result-link");
+    if (link) {
+      const id = link.closest(".result-item")?.dataset.id;
+      if (id) markAsSeen(id);
+      return;
+    }
+    const postuleBtn = e.target.closest(".postule-btn");
+    if (postuleBtn) {
+      e.preventDefault();
+      togglePostule(postuleBtn.dataset.id, postuleBtn);
+      return;
+    }
+    const reseauBtn = e.target.closest(".reseau-btn");
+    if (reseauBtn) {
+      e.preventDefault();
+      const panel = reseauBtn.closest(".result-item").querySelector(".reseau-panel");
+      if (panel) panel.hidden = !panel.hidden;
+      return;
+    }
+    const relanceBtn = e.target.closest(".relance-btn");
+    if (relanceBtn) {
+      e.preventDefault();
+      const panel = relanceBtn.nextElementSibling;
+      if (panel && panel.classList.contains("relance-panel")) panel.hidden = !panel.hidden;
+      return;
+    }
+  });
 
   sortSelect.addEventListener("change", renderResults);
   hideSeenCheckbox.addEventListener("change", renderResults);
 
   exportBtn.addEventListener("click", () => {
     if (!allResults.length) return;
-    const header = ["Titre", "Employeur", "Lieu", "Score", "Raison", "URL", "Vu", "Date"];
+    const header = ["Titre", "Employeur", "Lieu", "Score", "Raison", "URL", "Vu", "Postule", "Date"];
     const rows = allResults.map((r) => [
       r.titre || "", r.employeur || "", r.lieu || "", r.score ?? "",
-      r.raison || "", r.url || "", r.vu ? "oui" : "non", r.created_at || "",
+      r.raison || "", r.url || "", r.vu ? "oui" : "non", r.postule ? "oui" : "non", r.created_at || "",
     ]);
     const csv = [header, ...rows]
       .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
@@ -351,6 +553,112 @@
     URL.revokeObjectURL(url);
   });
 
+  // ------------------------------------------------------------------
+  // Mode tri (swipe façon Tinder) : droite = interessant, gauche = ecarte
+  // ------------------------------------------------------------------
+  function initSwipe() {
+    const toggleBtn = document.getElementById("btn-swipe-mode");
+    const section = document.getElementById("swipe-section");
+    const deckEl = document.getElementById("swipe-deck");
+    const btnYes = document.getElementById("swipe-yes");
+    const btnNo = document.getElementById("swipe-no");
+    let active = false;
+    let currentId = null;
+
+    toggleBtn.addEventListener("click", () => {
+      active = !active;
+      section.hidden = !active;
+      resultsContainer.hidden = active;
+      toggleBtn.textContent = active ? "Fermer le tri" : "Mode tri";
+      if (active) renderDeck();
+    });
+
+    function queue() {
+      return allResults
+        .filter((r) => r.interet === null || r.interet === undefined)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+
+    function renderDeck() {
+      const q = queue();
+      if (!q.length) {
+        deckEl.innerHTML = `<div class="swipe-empty">Tout est trie ! Reviens plus tard pour de nouvelles offres.</div>`;
+        currentId = null;
+        return;
+      }
+      const r = q[0];
+      currentId = r.id;
+      deckEl.innerHTML = `
+        <div class="swipe-card" id="swipe-card-active">
+          <span class="swipe-stamp swipe-stamp--like">INTERESSE</span>
+          <span class="swipe-stamp swipe-stamp--nope">PASSE</span>
+          <div class="result-score">${r.score ?? "–"}</div>
+          <div class="result-title">${escapeHtml(r.titre || "Sans titre")}</div>
+          <div class="result-meta">${escapeHtml(r.employeur || "")} · ${escapeHtml(r.lieu || "")}</div>
+          ${r.raison ? `<div class="result-reason">${escapeHtml(r.raison)}</div>` : ""}
+        </div>
+      `;
+      wireDrag(document.getElementById("swipe-card-active"));
+    }
+
+    function wireDrag(card) {
+      let startX = 0, dx = 0, dragging = false;
+      const like = card.querySelector(".swipe-stamp--like");
+      const nope = card.querySelector(".swipe-stamp--nope");
+
+      card.addEventListener("pointerdown", (e) => {
+        dragging = true;
+        startX = e.clientX;
+        card.setPointerCapture(e.pointerId);
+      });
+      card.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        dx = e.clientX - startX;
+        card.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`;
+        like.style.opacity = Math.max(0, Math.min(1, dx / 80));
+        nope.style.opacity = Math.max(0, Math.min(1, -dx / 80));
+      });
+      const release = () => {
+        if (!dragging) return;
+        dragging = false;
+        if (Math.abs(dx) > 100) {
+          commit(dx > 0);
+        } else {
+          card.style.transition = "transform .25s ease";
+          card.style.transform = "";
+          setTimeout(() => { if (card) card.style.transition = ""; }, 250);
+        }
+        dx = 0;
+      };
+      card.addEventListener("pointerup", release);
+      card.addEventListener("pointercancel", release);
+    }
+
+    function commit(liked) {
+      const card = document.getElementById("swipe-card-active");
+      if (!card || !currentId) return;
+      const id = currentId;
+      card.style.transition = "transform .35s ease, opacity .35s ease";
+      card.style.transform = `translateX(${(liked ? 1 : -1) * 600}px) rotate(${liked ? 20 : -20}deg)`;
+      card.style.opacity = "0";
+      decide(id, liked);
+      setTimeout(renderDeck, 260);
+    }
+
+    btnYes.addEventListener("click", () => currentId && commit(true));
+    btnNo.addEventListener("click", () => currentId && commit(false));
+
+    async function decide(id, liked) {
+      const item = allResults.find((r) => r.id === id);
+      if (!item) return;
+      item.interet = liked;
+      item.vu = true;
+      renderResults();
+      const { error } = await supa.from("job_results").update({ interet: liked, vu: true }).eq("id", id);
+      if (error) console.error("swipe:", error);
+    }
+  }
+
   {
     const { data, error } = await supa
       .from("job_results")
@@ -363,6 +671,7 @@
     allResults = data || [];
     exportBtn.disabled = !allResults.length;
     renderResults();
+    initSwipe();
   }
 
   function escapeHtml(s) {

@@ -41,6 +41,9 @@ create table if not exists job_results (
   conseil_candidature text,
   source text,
   vu boolean default false,
+  postule boolean default false,   -- suivi de candidature, coche par l'utilisateur
+  postule_at timestamptz,          -- date de candidature, pour la relance a J+7
+  interet boolean,                 -- tri façon swipe : null=indecis, true=garde, false=ecarte
   created_at timestamptz default now()
 );
 

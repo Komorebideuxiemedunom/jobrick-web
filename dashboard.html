@@ -25,6 +25,12 @@
 
   <nav class="nav-pill">
     <span class="nav-pill-logo">Jobrick</span>
+    <span class="nav-pill-links">
+      <a href="#section-cv">CV</a>
+      <a href="#section-zones">Zones</a>
+      <a href="#section-prefs">Prefs</a>
+      <a href="#section-results">Offres</a>
+    </span>
     <span class="nav-pill-user">
       <span id="user-email"></span>
       <button id="btn-logout" class="btn-ghost">Se deconnecter</button>
@@ -32,6 +38,32 @@
   </nav>
 
   <main class="dash-main">
+
+    <!-- Onboarding -->
+    <div class="onboarding-card anim-hidden" data-anim id="onboarding-card">
+      <div class="onboarding-head">
+        <h3>Mise en route</h3>
+        <span class="onboarding-count" id="onboarding-count">0/4</span>
+      </div>
+      <div class="onboarding-bar"><div class="onboarding-bar-fill" id="onboarding-bar-fill" style="width:0%"></div></div>
+      <div class="onboarding-steps" id="onboarding-steps"></div>
+    </div>
+
+    <!-- Mini-stats -->
+    <div class="stats-row anim-hidden" data-anim>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-nouvelles">0</div>
+        <div class="stat-label">nouvelles offres</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-semaine">0</div>
+        <div class="stat-label">vues cette semaine</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-attente">0</div>
+        <div class="stat-label">en attente de reponse</div>
+      </div>
+    </div>
 
     <!-- CV -->
     <section class="card anim-hidden" data-anim id="section-cv">
@@ -55,6 +87,12 @@
         </div>
       </div>
       <p id="cv-status" class="field-status"></p>
+
+      <div class="cv-actions">
+        <button id="btn-scan-ats" class="btn-scan" disabled>Scanner mon CV (ATS)</button>
+        <span class="field-status" id="ats-status"></span>
+      </div>
+      <div id="ats-panel" class="ats-panel" hidden></div>
     </section>
 
     <!-- Zones -->
@@ -146,7 +184,16 @@
             Masquer les offres vues
           </label>
         </div>
+        <button id="btn-swipe-mode" class="btn-export">Mode tri</button>
         <button id="btn-export" class="btn-export" disabled>Exporter en CSV</button>
+      </div>
+
+      <div id="swipe-section" hidden>
+        <div class="swipe-deck" id="swipe-deck"></div>
+        <div class="swipe-actions">
+          <button id="swipe-no" class="swipe-btn swipe-btn--no" title="Pas interesse">✕</button>
+          <button id="swipe-yes" class="swipe-btn swipe-btn--yes" title="Interessant">♥</button>
+        </div>
       </div>
 
       <div id="results-list"></div>
@@ -166,9 +213,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.12.3/mammoth.browser.min.js"></script>
   <script src="assets/js/config.js"></script>
   <script src="assets/js/supabase-client.js"></script>
   <script src="assets/js/motion.js"></script>
+  <script src="assets/js/ats.js"></script>
   <script src="assets/js/dashboard.js"></script>
 </body>
 </html>
