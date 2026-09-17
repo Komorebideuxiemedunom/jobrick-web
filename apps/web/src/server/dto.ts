@@ -47,4 +47,6 @@ export interface DashboardDto {
   readonly profile: ProfileDto
   readonly zones: ReadonlyArray<ZoneDto>
   readonly offres: ReadonlyArray<OffreDto>
+  /** Profil Discord du bot, d'ou l'on peut ouvrir la conversation privee. */
+  readonly urlBot: string
 }

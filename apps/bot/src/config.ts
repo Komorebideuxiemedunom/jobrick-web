@@ -9,6 +9,16 @@ export const BotConfig = Config.all({
   /** URL publique du site, mise en lien dans les messages prives. */
   publicUrl: Config.string("PUBLIC_URL"),
   /**
+   * Identifiant Discord du proprietaire : le seul a pouvoir lancer
+   * `/inviter`. Le controle se fait dans le code de l'interaction et non avec
+   * `setDefaultMemberPermissions`, qui ne vaut que dans les salons d'un
+   * serveur : en message prive, la commande resterait ouverte a tous.
+   */
+  proprietaire: Config.string("DISCORD_PROPRIETAIRE").pipe(
+    Config.withDefault(""),
+    Config.map((v) => (v.trim() === "" ? null : v.trim())),
+  ),
+  /**
    * Frequence a laquelle le bot regarde s'il y a des offres a annoncer.
    * La veille ne tourne que deux fois par jour : inutile d'interroger la
    * base plus souvent que la minute.

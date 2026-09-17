@@ -6,7 +6,7 @@
  * fichier. On les branche via un middleware de requete, qui peut renvoyer une
  * `Response` directement.
  */
-import { OAuthStates, Profiles, Sessions, Users } from "@jobrick/db"
+import { Invitations, OAuthStates, Profiles, Sessions, Users } from "@jobrick/db"
 import { Effect, Option } from "effect"
 import { AppConfig } from "./config.ts"
 import { profilDepuisCode, urlAutorisation } from "./discord.ts"
@@ -55,25 +55,37 @@ const demarrerConnexion = (url: URL) =>
 // ---------------------------------------------------------------------------
 const terminerConnexion = (url: URL) =>
   Effect.gen(function* () {
-    const { cookieSecure } = yield* AppConfig
+    const { cookieSecure, proprietaire } = yield* AppConfig
 
     if (url.searchParams.get("error") !== null) {
-      return erreurAuth("Connexion Discord refusee.")
+      return erreurAuth("Connexion Discord refusée.")
     }
 
     const code = url.searchParams.get("code")
     const state = url.searchParams.get("state")
     if (code === null || state === null) {
-      return erreurAuth("Reponse Discord incomplete.")
+      return erreurAuth("Réponse Discord incomplète.")
     }
 
     const states = yield* OAuthStates
     const enregistre = yield* states.consommer(state)
     if (Option.isNone(enregistre)) {
-      return erreurAuth("Lien de connexion expire : reessaie.")
+      return erreurAuth("Lien de connexion expiré : réessaie.")
     }
 
     const profil = yield* profilDepuisCode(code)
+
+    // Sur invitation : le controle vient avant la creation du compte, pour
+    // qu'un inconnu ne laisse ni ligne `users` ni profil derriere lui.
+    if (proprietaire !== null && profil.id !== proprietaire) {
+      const invitations = yield* Invitations
+      if (!(yield* invitations.autorise(profil.id))) {
+        return erreurAuth(
+          "Jobrick est sur invitation : demande l'accès à son propriétaire.",
+        )
+      }
+    }
+
     const users = yield* Users
     const sessions = yield* Sessions
     const user = yield* users.upsertDepuisDiscord(profil)
@@ -119,11 +131,11 @@ const deconnexion = (request: Request) =>
 const telechargerCv = (request: Request) =>
   Effect.gen(function* () {
     const jeton = lireCookie(request, NOM_COOKIE)
-    if (jeton === undefined) return new Response("Non autorise", { status: 401 })
+    if (jeton === undefined) return new Response("Non autorisé", { status: 401 })
 
     const sessions = yield* Sessions
     const user = yield* sessions.valider(jeton)
-    if (Option.isNone(user)) return new Response("Non autorise", { status: 401 })
+    if (Option.isNone(user)) return new Response("Non autorisé", { status: 401 })
 
     const profiles = yield* Profiles
     const cv = yield* profiles.lireCv(user.value.id)

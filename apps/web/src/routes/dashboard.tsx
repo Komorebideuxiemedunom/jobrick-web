@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import {
   CheckIcon,
+  ExternalLinkIcon,
   Loader2Icon,
   MessageSquareIcon,
 } from "lucide-react"
@@ -10,7 +11,7 @@ import { CarteResultats } from "~/components/CarteResultats.tsx"
 import { PanneauZones } from "~/components/PanneauZones.tsx"
 import { Logo } from "~/components/Logo.tsx"
 import { MenuProfil } from "~/components/MenuProfil.tsx"
-import { Button } from "~/components/ui/button.tsx"
+import { Button, buttonVariants } from "~/components/ui/button.tsx"
 import {
   Card,
   CardContent,
@@ -288,6 +289,25 @@ function Dashboard() {
               />
             </Label>
 
+            {/*
+              Discord n'ouvre pas une conversation sur commande : le lien mene
+              au profil du bot, d'ou le bouton "Envoyer un message" existe
+              deja. C'est aussi la qu'on verifie qu'il n'est pas bloque.
+            */}
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href={donnees.urlBot}
+                target="_blank"
+                rel="noreferrer"
+                className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+              >
+                <ExternalLinkIcon />
+                Ouvrir la conversation avec le bot
+              </a>
+              <span className="text-muted-foreground text-sm">
+                Il ne peut t&apos;écrire que s&apos;il partage un serveur avec toi.
+              </span>
+            </div>
           </CardContent>
         </Card>
 

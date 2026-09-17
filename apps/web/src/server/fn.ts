@@ -17,6 +17,7 @@ import {
 import { JobResults, Profiles, Zones } from "@jobrick/db"
 import { createServerFn } from "@tanstack/react-start"
 import { Effect, Option, Schema } from "effect"
+import { AppConfig } from "./config.ts"
 import type { DashboardDto, OffreDto, ProfileDto, UserDto, ZoneDto } from "./dto.ts"
 import { run } from "./runtime.ts"
 import { exigerUtilisateur, utilisateurCourant } from "./session.ts"
@@ -83,6 +84,9 @@ export const chargerDashboard = createServerFn({ method: "GET" }).handler(
         const profiles = yield* Profiles
         const zones = yield* Zones
         const offres = yield* JobResults
+        // L'identifiant du client OAuth est aussi celui de l'application,
+        // donc celui du compte Discord du bot : de quoi pointer son profil.
+        const { discordClientId } = yield* AppConfig
 
         // Les trois lectures sont independantes : autant les mener de front.
         const [profile, mesZones, mesOffres] = yield* Effect.all(
@@ -99,6 +103,7 @@ export const chargerDashboard = createServerFn({ method: "GET" }).handler(
           profile: versProfileDto(profile),
           zones: mesZones.map(versZoneDto),
           offres: mesOffres.map(versOffreDto),
+          urlBot: `https://discord.com/users/${discordClientId}`,
         }
       }),
     ),

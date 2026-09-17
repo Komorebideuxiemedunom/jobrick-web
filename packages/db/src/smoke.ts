@@ -10,6 +10,7 @@ import { SqlClient } from "@effect/sql"
 import { Effect, Option } from "effect"
 import { DbLive, type DiscordProfile } from "./index.ts"
 import { OAuthStates, Sessions, Users } from "./auth.ts"
+import { Invitations } from "./invitations.ts"
 import { JobResults } from "./offres.ts"
 import { Profiles, Zones } from "./profil.ts"
 import type { JobResultId } from "@jobrick/core"
@@ -40,12 +41,14 @@ const programme = Effect.gen(function* () {
   const users = yield* Users
   const sessions = yield* Sessions
   const states = yield* OAuthStates
+  const invitations = yield* Invitations
   const profiles = yield* Profiles
   const zones = yield* Zones
   const offres = yield* JobResults
 
   // Table rase : le passage doit pouvoir etre rejoue autant de fois qu'on veut.
   yield* sql`delete from users where discord_id in (${PROFIL_A.id}, ${PROFIL_B.id})`
+  yield* sql`delete from invitations where discord_id in (${PROFIL_A.id}, ${PROFIL_B.id})`
 
   yield* Effect.log("Utilisateur")
   const a = yield* users.upsertDepuisDiscord(PROFIL_A)
@@ -192,8 +195,46 @@ const programme = Effect.gen(function* () {
     "la commande /offres ne remonte pas les offres ecartees",
   )
 
+  yield* Effect.log("Invitations")
+  yield* verifier(
+    !(yield* invitations.autorise(PROFIL_B.id)),
+    "un inconnu n'est pas autorise",
+  )
+  yield* verifier(
+    yield* invitations.ajouter(PROFIL_B.id, { invitePar: PROFIL_A.id, note: "un ami" }),
+    "invitation ajoutee",
+  )
+  yield* verifier(
+    !(yield* invitations.ajouter(PROFIL_B.id, { invitePar: PROFIL_A.id, note: null })),
+    "reinviter quelqu'un ne cree pas de doublon",
+  )
+  yield* verifier(yield* invitations.autorise(PROFIL_B.id), "l'invite est autorise")
+  yield* verifier(
+    (yield* invitations.lister()).some(
+      (i) => i.discordId === PROFIL_B.id && i.note === "un ami",
+    ),
+    "la liste porte la note",
+  )
+  // Retirer quelqu'un doit le mettre dehors tout de suite : sans cela il
+  // resterait connecte jusqu'a l'expiration de son cookie, soit trente jours.
+  const jetonB = (yield* sessions.creer(b.id)).jeton
+  yield* verifier(yield* invitations.retirer(PROFIL_B.id), "invitation retiree")
+  yield* verifier(
+    Option.isNone(yield* sessions.valider(jetonB)),
+    "retirer l'invitation ferme les sessions ouvertes",
+  )
+  yield* verifier(
+    Option.isSome(yield* sessions.valider((yield* sessions.creer(a.id)).jeton)),
+    "mais ne touche pas aux sessions des autres",
+  )
+  yield* verifier(
+    !(yield* invitations.retirer(PROFIL_B.id)),
+    "retirer deux fois ne ment pas sur le resultat",
+  )
+
   yield* Effect.log("Menage")
   yield* sql`delete from users where discord_id in (${PROFIL_A.id}, ${PROFIL_B.id})`
+  yield* sql`delete from invitations where discord_id in (${PROFIL_A.id}, ${PROFIL_B.id})`
   const restantes = yield* sql<{ n: string }>`select count(*)::text as n from job_results`
   yield* verifier(
     restantes[0]?.n === "0",
