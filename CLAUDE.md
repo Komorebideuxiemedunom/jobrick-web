@@ -10,7 +10,7 @@ Monorepo **pnpm**. Node 22, TypeScript 5.9, tout en ESM.
 
 | Paquet | Role |
 | --- | --- |
-| `apps/web` | Site — TanStack Start (React 19, Vite 8), SSR |
+| `apps/web` | Site — TanStack Start (React 19, Vite 8), SSR, Tailwind 4 + shadcn |
 | `apps/bot` | Bot Discord — discord.js 14 |
 | `packages/core` | Modele metier partage (Effect Schema) |
 | `packages/db` | Postgres : migrations SQL + depots Effect |
@@ -79,6 +79,16 @@ deplacer cette analyse cote serveur ni vers un service tiers.
 joues dans l'ordre, une transaction chacun, jamais modifies retroactivement :
 on en ajoute un nouveau. Le conteneur web les joue au demarrage.
 
+**Interface.** Tailwind v4 (config dans `src/styles/app.css`, pas de
+`tailwind.config`) et composants shadcn dans `src/components/ui/`. Base zinc,
+clair et sombre, le theme suit le systeme via un script inline dans
+`__root.tsx`. Les composants sont ecrits a la main plutot que poses par la CLI
+shadcn : `switch`, `checkbox` et `select` s'appuient sur les elements natifs,
+plus accessibles et sans dependance Radix. Pour en ajouter un que le natif ne
+couvre pas (dialogue, menu, combobox), reprendre le code shadcn et lui ajouter
+sa dependance Radix — la CLI v4 attend une `components.json` incompatible avec
+ce setup.
+
 **Langue.** Code, commentaires et commits en francais, sans accents dans les
 identifiants. Les commentaires expliquent *pourquoi*, pas *quoi*.
 
@@ -93,3 +103,13 @@ identifiants. Les commentaires expliquent *pourquoi*, pas *quoi*.
   parallele sur la machine). Surchargeable avec `POSTGRES_PORT`.
 - Un DM refuse (parametres de confidentialite) n'est pas une erreur : l'offre
   reste dans la file et l'utilisateur la voit sur le dashboard.
+- Un DM non sollicite exige que le bot partage un serveur avec le destinataire.
+  L'installation doit donc demander la portee `bot`, pas seulement
+  `applications.commands`.
+- Leaflet se charge en asynchrone : les effets qui synchronisent les couches
+  dependent d'un drapeau `pret`, sinon ils tournent avant que la carte existe
+  et les zones enregistrees restent invisibles. Ses icones par defaut
+  demandent aussi de supprimer `_getIconUrl`, qui prefixerait nos URLs
+  resolues.
+- L'alias `~` est declare deux fois, dans `tsconfig.json` et dans
+  `vite.config.ts` : le serveur de dev ne lit pas les `paths` du tsconfig.

@@ -1,11 +1,32 @@
 /**
- * Dernieres offres : liste triable, mode tri facon swipe, export CSV,
- * suivi de candidature et aide au reseautage.
+ * Dernieres offres : liste triable, mode tri, export CSV, suivi de
+ * candidature et aide au reseautage.
  */
 import { messageRelance, relanceConseillee } from "@jobrick/core"
+import {
+  BriefcaseIcon,
+  ClockIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  LayersIcon,
+  UsersIcon,
+} from "lucide-react"
 import { useMemo, useState } from "react"
-import type { OffreDto } from "../server/dto.ts"
-import { IconeMallette } from "./icones.tsx"
+import { cn } from "~/lib/utils.ts"
+import type { OffreDto } from "~/server/dto.ts"
+import { Badge } from "~/components/ui/badge.tsx"
+import { Button } from "~/components/ui/button.tsx"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card.tsx"
+import { Checkbox } from "~/components/ui/checkbox.tsx"
+import { Label } from "~/components/ui/label.tsx"
+import { Select } from "~/components/ui/select.tsx"
+import { Textarea } from "~/components/ui/textarea.tsx"
 import { DeckTri } from "./DeckTri.tsx"
 
 type Tri = "date" | "score"
@@ -30,7 +51,7 @@ const exporterCsv = (offres: ReadonlyArray<OffreDto>): void => {
     .map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
     .join("\n")
   // Le BOM force Excel a lire l'UTF-8 : sans lui, les accents sortent casses.
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" })
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
@@ -38,6 +59,10 @@ const exporterCsv = (offres: ReadonlyArray<OffreDto>): void => {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+/** Le score colore le badge : vert au-dela de 75, ambre au-dela de 45. */
+const varianteScore = (score: number | null) =>
+  score === null ? "secondary" : score >= 75 ? "success" : score >= 45 ? "warning" : "secondary"
 
 export function CarteResultats({ offres, onVue, onPostule, onInteret }: Props) {
   const [tri, setTri] = useState<Tri>("date")
@@ -64,69 +89,76 @@ export function CarteResultats({ offres, onVue, onPostule, onInteret }: Props) {
   )
 
   return (
-    <section className="card anim-hidden" data-anim="" id="section-results">
-      <div className="card-head">
-        <div className="card-icon">
-          <IconeMallette />
-        </div>
-        <h2>Dernieres offres trouvees</h2>
-      </div>
+    <Card id="section-results" className="scroll-mt-20">
+      <CardHeader>
+        <CardTitle>Dernieres offres trouvees</CardTitle>
+        <CardAction>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant={modeTri ? "default" : "outline"}
+              size="sm"
+              onClick={() => setModeTri((v) => !v)}
+            >
+              <LayersIcon />
+              {modeTri ? "Fermer le tri" : "Mode tri"}
+              {!modeTri && aTrier.length > 0 && (
+                <Badge variant="secondary" className="ml-1">{aTrier.length}</Badge>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={offres.length === 0}
+              onClick={() => exporterCsv(offres)}
+            >
+              <DownloadIcon />
+              CSV
+            </Button>
+          </div>
+        </CardAction>
+      </CardHeader>
 
-      <div className="results-toolbar">
-        <div className="results-filters">
-          <select value={tri} onChange={(e) => setTri(e.target.value as Tri)}>
-            <option value="date">Trier par date</option>
-            <option value="score">Trier par score</option>
-          </select>
-          <label className="results-toggle">
-            <input
-              type="checkbox"
-              checked={masquerVues}
-              onChange={(e) => setMasquerVues(e.target.checked)}
-            />
-            Masquer les offres vues
-          </label>
-        </div>
-        <button
-          type="button"
-          className="btn-export"
-          onClick={() => setModeTri((v) => !v)}
-        >
-          {modeTri ? "Fermer le tri" : "Mode tri"}
-        </button>
-        <button
-          type="button"
-          className="btn-export"
-          disabled={offres.length === 0}
-          onClick={() => exporterCsv(offres)}
-        >
-          Exporter en CSV
-        </button>
-      </div>
+      <CardContent className="flex flex-col gap-4">
+        {!modeTri && (
+          <div className="flex flex-wrap items-center gap-4">
+            <Select value={tri} onChange={(e) => setTri(e.target.value as Tri)}>
+              <option value="date">Trier par date</option>
+              <option value="score">Trier par score</option>
+            </Select>
+            <Label className="text-muted-foreground font-normal">
+              <Checkbox
+                checked={masquerVues}
+                onChange={(e) => setMasquerVues(e.target.checked)}
+              />
+              Masquer les offres vues
+            </Label>
+          </div>
+        )}
 
-      {modeTri ? (
-        <DeckTri offres={aTrier} onDecision={onInteret} />
-      ) : (
-        <div id="results-list">
-          {visibles.length === 0 ? (
-            <p className="empty-state">
-              {offres.length > 0
-                ? "Rien a afficher avec ce filtre."
-                : "Rien pour l'instant — la veille tourne deux fois par jour, reviens un peu plus tard."}
-            </p>
-          ) : (
-            visibles.map((offre) => (
+        {modeTri ? (
+          <DeckTri offres={aTrier} onDecision={onInteret} />
+        ) : visibles.length === 0 ? (
+          <p className="text-muted-foreground py-12 text-center text-sm text-pretty">
+            {offres.length > 0
+              ? "Rien a afficher avec ce filtre."
+              : "Rien pour l'instant — la veille tourne deux fois par jour, reviens un peu plus tard."}
+          </p>
+        ) : (
+          <div className="divide-border -mx-6 divide-y border-y">
+            {visibles.map((offre) => (
               <LigneOffre
                 key={offre.id}
                 offre={offre}
                 onVue={onVue}
                 onPostule={onPostule}
               />
-            ))
-          )}
-        </div>
-      )}
-    </section>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -144,87 +176,107 @@ function LigneOffre({
   const q = encodeURIComponent(offre.employeur ?? "")
 
   return (
-    <div className={`result-item${offre.vu ? "" : " is-new"}`}>
-      <a
-        className="result-link"
-        href={offre.url ?? "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => onVue(offre.id)}
-      >
-        <div className="result-score">{offre.score ?? "–"}</div>
-        <div className="result-body">
-          <div className="result-title-row">
-            <div className="result-title">{offre.titre ?? "Sans titre"}</div>
-            {!offre.vu && <span className="result-new-badge">Nouveau</span>}
+    <div className={cn("px-6 py-4 transition-colors", !offre.vu && "bg-accent/40")}>
+      <div className="flex items-start gap-4">
+        <Badge variant={varianteScore(offre.score)} className="mt-0.5 tabular-nums">
+          {offre.score ?? "–"}
+        </Badge>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={offre.url ?? "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => onVue(offre.id)}
+              className="group inline-flex items-center gap-1.5 font-medium hover:underline"
+            >
+              {offre.titre ?? "Sans titre"}
+              <ExternalLinkIcon className="text-muted-foreground size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+            </a>
+            {!offre.vu && <Badge variant="outline">Nouveau</Badge>}
           </div>
-          <div className="result-meta">
-            {offre.employeur ?? ""} · {offre.lieu ?? ""}
-          </div>
+
+          <p className="text-muted-foreground text-sm">
+            {[offre.employeur, offre.lieu].filter(Boolean).join(" · ")}
+          </p>
+
           {offre.raison !== null && (
-            <div className="result-reason">{offre.raison}</div>
+            <p className="text-muted-foreground mt-1 text-sm text-pretty">{offre.raison}</p>
+          )}
+
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={offre.postule ? "secondary" : "ghost"}
+              onClick={() => onPostule(offre.id, !offre.postule)}
+            >
+              <BriefcaseIcon />
+              {offre.postule ? "Postule" : "Marquer postule"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setReseauOuvert((v) => !v)}
+            >
+              <UsersIcon />
+              Reseautage
+            </Button>
+            {relanceConseillee(offre) && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="text-warning"
+                onClick={() => setRelanceOuverte((v) => !v)}
+              >
+                <ClockIcon />
+                Relance conseillee (J+7)
+              </Button>
+            )}
+          </div>
+
+          {relanceOuverte && (
+            <div className="bg-muted/50 mt-2 flex flex-col gap-2 rounded-lg p-3">
+              <span className="text-muted-foreground text-xs">
+                Suggestion de message a copier :
+              </span>
+              <Textarea rows={3} readOnly value={messageRelance(offre)} className="bg-background" />
+            </div>
+          )}
+
+          {reseauOuvert && (
+            <div className="bg-muted/50 mt-2 flex flex-col gap-1 rounded-lg p-3 text-sm">
+              {[
+                [`${q}%20CEO`, "Chercher le/la CEO sur LinkedIn"],
+                [`${q}%20RH%20recrutement`, "Chercher RH / recrutement sur LinkedIn"],
+              ].map(([suffixe, libelle]) => (
+                <a
+                  key={libelle}
+                  href={`https://www.linkedin.com/search/results/people/?keywords=${suffixe}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground text-muted-foreground inline-flex items-center gap-1.5"
+                >
+                  <ExternalLinkIcon className="size-3.5" />
+                  {libelle}
+                </a>
+              ))}
+              <a
+                href={`https://www.linkedin.com/search/results/companies/?keywords=${q}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground text-muted-foreground inline-flex items-center gap-1.5"
+              >
+                <ExternalLinkIcon className="size-3.5" />
+                Voir la page entreprise sur LinkedIn
+              </a>
+            </div>
           )}
         </div>
-      </a>
-
-      <div className="result-actions">
-        <button
-          type="button"
-          className={`chip-btn${offre.postule ? " is-active" : ""}`}
-          onClick={() => onPostule(offre.id, !offre.postule)}
-        >
-          {offre.postule ? "Postule ✓" : "Marquer postule"}
-        </button>
-        <button
-          type="button"
-          className="chip-btn"
-          onClick={() => setReseauOuvert((v) => !v)}
-        >
-          Reseautage
-        </button>
-        {relanceConseillee(offre) && (
-          <button
-            type="button"
-            className="chip-relance"
-            onClick={() => setRelanceOuverte((v) => !v)}
-          >
-            Relance conseillee (J+7)
-          </button>
-        )}
       </div>
-
-      {relanceOuverte && (
-        <div className="relance-panel">
-          Suggestion de message a copier :
-          <textarea rows={3} readOnly value={messageRelance(offre)} />
-        </div>
-      )}
-
-      {reseauOuvert && (
-        <div className="reseau-panel">
-          <a
-            href={`https://www.linkedin.com/search/results/people/?keywords=${q}%20CEO`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Chercher le/la CEO sur LinkedIn →
-          </a>
-          <a
-            href={`https://www.linkedin.com/search/results/people/?keywords=${q}%20RH%20recrutement`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Chercher RH / recrutement sur LinkedIn →
-          </a>
-          <a
-            href={`https://www.linkedin.com/search/results/companies/?keywords=${q}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Voir la page entreprise sur LinkedIn →
-          </a>
-        </div>
-      )}
     </div>
   )
 }

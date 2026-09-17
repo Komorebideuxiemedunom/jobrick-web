@@ -1,13 +1,34 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
+import {
+  CheckIcon,
+  Loader2Icon,
+  LogOutIcon,
+  MapPinIcon,
+  MessageSquareIcon,
+  TrashIcon,
+} from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { CarteCv } from "../components/CarteCv.tsx"
-import { CarteResultats } from "../components/CarteResultats.tsx"
-import { CarteZones } from "../components/CarteZones.tsx"
-import { ShapeField } from "../components/ShapeField.tsx"
-import { IconeCible, IconeCloche, IconeGlobe } from "../components/icones.tsx"
-import { initMotion } from "../lib/motion.ts"
-import { versBrouillon, type ZoneBrouillon } from "../lib/zones.ts"
-import type { OffreDto } from "../server/dto.ts"
+import { CarteCv } from "~/components/CarteCv.tsx"
+import { CarteResultats } from "~/components/CarteResultats.tsx"
+import { CarteZones } from "~/components/CarteZones.tsx"
+import { Alert, AlertDescription } from "~/components/ui/alert.tsx"
+import { Avatar } from "~/components/ui/avatar.tsx"
+import { Button } from "~/components/ui/button.tsx"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card.tsx"
+import { Input } from "~/components/ui/input.tsx"
+import { Label } from "~/components/ui/label.tsx"
+import { Progress } from "~/components/ui/progress.tsx"
+import { Switch } from "~/components/ui/switch.tsx"
+import { Textarea } from "~/components/ui/textarea.tsx"
+import { cn } from "~/lib/utils.ts"
+import { versBrouillon, type ZoneBrouillon } from "~/lib/zones.ts"
+import type { OffreDto } from "~/server/dto.ts"
 import {
   chargerDashboard,
   definirInteret,
@@ -16,7 +37,7 @@ import {
   marquerVue,
   moi,
   televerserCv,
-} from "../server/fn.ts"
+} from "~/server/fn.ts"
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
@@ -27,6 +48,13 @@ export const Route = createFileRoute("/dashboard")({
 })
 
 type EtatSauvegarde = "repos" | "encours" | "ok" | "erreur"
+
+const ANCRES = [
+  ["section-cv", "CV"],
+  ["section-zones", "Zones"],
+  ["section-prefs", "Prefs"],
+  ["section-results", "Offres"],
+] as const
 
 function Dashboard() {
   const donnees = Route.useLoaderData()
@@ -48,7 +76,12 @@ function Dashboard() {
   const [etat, setEtat] = useState<EtatSauvegarde>("repos")
   const [erreur, setErreur] = useState<string | null>(null)
 
-  useEffect(() => initMotion(), [])
+  // Le succes s'efface tout seul ; on annule le minuteur si le composant part.
+  useEffect(() => {
+    if (etat !== "ok") return
+    const t = window.setTimeout(() => setEtat("repos"), 1800)
+    return () => window.clearTimeout(t)
+  }, [etat])
 
   const etapes = useMemo(
     () => [
@@ -64,19 +97,18 @@ function Dashboard() {
   const stats = useMemo(() => {
     const semaine = Date.now() - 7 * 24 * 3600 * 1000
     const gardees = offres.filter((r) => r.interet !== false)
-    return {
-      nouvelles: gardees.filter((r) => !r.vu).length,
-      semaine: gardees.filter(
-        (r) => r.vu && r.createdAt.getTime() >= semaine,
-      ).length,
-      attente: gardees.filter((r) => r.postule).length,
-    }
+    return [
+      { valeur: gardees.filter((r) => !r.vu).length, label: "nouvelles offres" },
+      {
+        valeur: gardees.filter((r) => r.vu && r.createdAt.getTime() >= semaine).length,
+        label: "vues cette semaine",
+      },
+      { valeur: gardees.filter((r) => r.postule).length, label: "en attente de reponse" },
+    ]
   }, [offres])
 
   const majOffre = (id: string, patch: Partial<OffreDto>) =>
-    setOffres((liste) =>
-      liste.map((o) => (o.id === id ? { ...o, ...patch } : o)),
-    )
+    setOffres((liste) => liste.map((o) => (o.id === id ? { ...o, ...patch } : o)))
 
   const enregistrer = async () => {
     setEtat("encours")
@@ -102,7 +134,6 @@ function Dashboard() {
         },
       })
       setEtat("ok")
-      window.setTimeout(() => setEtat("repos"), 1800)
       // Les zones reviennent avec leurs identifiants definitifs.
       await router.invalidate()
     } catch (e) {
@@ -113,89 +144,88 @@ function Dashboard() {
   }
 
   return (
-    <div className="dashboard">
-      <ShapeField
-        blobs={[
-          { depth: 0.12, x: "-10%", y: "10%", size: "300px", couleur: "var(--accent)", opacite: ".06" },
-          { depth: 0.2, x: "88%", y: "60%", size: "260px", couleur: "var(--ok)", opacite: ".05" },
-        ]}
-        formes={[
-          { type: "ring", depth: 0.2, x: "4%", y: "8%", size: "150px" },
-          { type: "triangle", depth: 0.15, x: "90%", y: "6%", size: "95px" },
-          { type: "square", depth: 0.24, x: "92%", y: "72%", size: "90px" },
-          { type: "diamond", depth: 0.18, x: "2%", y: "80%", size: "110px" },
-        ]}
-      />
+    <div className="min-h-svh">
+      <header className="bg-background/80 sticky top-0 z-10 border-b backdrop-blur">
+        <nav className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-4 px-6">
+          <span className="font-semibold tracking-tight">Jobrick</span>
 
-      <nav className="nav-pill">
-        <span className="nav-pill-logo">Jobrick</span>
-        <span className="nav-pill-links">
-          <a href="#section-cv">CV</a>
-          <a href="#section-zones">Zones</a>
-          <a href="#section-prefs">Prefs</a>
-          <a href="#section-results">Offres</a>
-        </span>
-        <span className="nav-pill-user">
-          <img
-            className="nav-pill-avatar"
-            src={donnees.user.avatarUrl}
-            alt=""
-            width={24}
-            height={24}
-          />
-          <span>{donnees.user.displayName}</span>
-          {/* Un formulaire POST : une deconnexion ne doit pas partir sur un
-              simple GET, qu'un prefetch ou un scanner de liens declencherait. */}
-          <form method="post" action="/api/auth/logout">
-            <button type="submit" className="btn-ghost">
-              Se deconnecter
-            </button>
-          </form>
-        </span>
-      </nav>
-
-      <main className="dash-main">
-        {faites < etapes.length && (
-          <div className="onboarding-card anim-hidden" data-anim="">
-            <div className="onboarding-head">
-              <h3>Mise en route</h3>
-              <span className="onboarding-count">
-                {faites}/{etapes.length}
-              </span>
-            </div>
-            <div className="onboarding-bar">
-              <div
-                className="onboarding-bar-fill"
-                style={{ width: `${(faites / etapes.length) * 100}%` }}
-              />
-            </div>
-            <div className="onboarding-steps">
-              {etapes.map((e) => (
-                <span
-                  key={e.label}
-                  className={`onboarding-step${e.fait ? " is-done" : ""}`}
-                >
-                  <span className="dot" />
-                  {e.label}
-                </span>
-              ))}
-            </div>
+          <div className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
+            {ANCRES.map(([id, libelle]) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className="hover:bg-accent hover:text-foreground rounded-md px-2.5 py-1.5 transition-colors"
+              >
+                {libelle}
+              </a>
+            ))}
           </div>
+
+          <div className="flex items-center gap-2">
+            <Avatar
+              src={donnees.user.avatarUrl}
+              alt=""
+              fallback={donnees.user.displayName.slice(0, 2).toUpperCase()}
+            />
+            <span className="hidden text-sm font-medium sm:inline">
+              {donnees.user.displayName}
+            </span>
+            {/* Un formulaire POST : une deconnexion ne doit pas partir sur un
+                simple GET, qu'un prefetch declencherait. */}
+            <form method="post" action="/api/auth/logout">
+              <Button type="submit" variant="ghost" size="icon" title="Se deconnecter">
+                <LogOutIcon />
+              </Button>
+            </form>
+          </div>
+        </nav>
+      </header>
+
+      <main className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8">
+        {faites < etapes.length && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Mise en route
+                <span className="text-muted-foreground text-sm font-normal tabular-nums">
+                  {faites}/{etapes.length}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <Progress value={(faites / etapes.length) * 100} />
+              <ul className="flex flex-wrap gap-x-5 gap-y-2">
+                {etapes.map((e) => (
+                  <li
+                    key={e.label}
+                    className={cn(
+                      "flex items-center gap-1.5 text-sm",
+                      e.fait ? "text-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex size-4 items-center justify-center rounded-full border",
+                        e.fait && "bg-success border-success text-success-foreground",
+                      )}
+                    >
+                      {e.fait && <CheckIcon className="size-3" />}
+                    </span>
+                    {e.label}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
         )}
 
-        <div className="stats-row anim-hidden" data-anim="">
-          <div className="stat-card">
-            <div className="stat-value">{stats.nouvelles}</div>
-            <div className="stat-label">nouvelles offres</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{stats.semaine}</div>
-            <div className="stat-label">vues cette semaine</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{stats.attente}</div>
-            <div className="stat-label">en attente de reponse</div>
-          </div>
+        <div className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
+          {stats.map((s) => (
+            <div key={s.label} className="bg-card flex flex-col gap-1 px-6 py-5">
+              <span className="text-2xl font-semibold tabular-nums">{s.valeur}</span>
+              <span className="text-muted-foreground text-sm">{s.label}</span>
+            </div>
+          ))}
         </div>
 
         <CarteCv
@@ -205,166 +235,150 @@ function Dashboard() {
           onFichier={setCvEnAttente}
         />
 
-        <section className="card anim-hidden" data-anim="" id="section-zones">
-          <div className="card-head">
-            <div className="card-icon">
-              <IconeGlobe size={17} />
-            </div>
-            <h2>Zones de recherche</h2>
-          </div>
-          <p className="card-sub">
-            Clique sur la carte pour ajouter un point de recherche.
-          </p>
-
-          <CarteZones
-            zones={zones}
-            onAjout={(z) => setZones((l) => [...l, z])}
-            onDeplacement={(cle, lat, lng) =>
-              setZones((l) => l.map((z) => (z.cle === cle ? { ...z, lat, lng } : z)))
-            }
-          />
-
-          <ul className="zones-list">
-            {zones.map((z) => (
-              <li className="zone-item" key={z.cle}>
-                <input
-                  type="text"
-                  value={z.label}
-                  placeholder="Nom du lieu"
-                  onChange={(e) =>
-                    setZones((l) =>
-                      l.map((x) =>
-                        x.cle === z.cle ? { ...x, label: e.target.value } : x,
-                      ),
-                    )
-                  }
-                />
-                <input
-                  type="number"
-                  className="zone-radius"
-                  min={1}
-                  max={200}
-                  value={z.rayonKm}
-                  onChange={(e) =>
-                    setZones((l) =>
-                      l.map((x) =>
-                        x.cle === z.cle
-                          ? {
-                              ...x,
-                              rayonKm: Math.min(
-                                200,
-                                Math.max(1, Number(e.target.value) || 25),
-                              ),
-                            }
-                          : x,
-                      ),
-                    )
-                  }
-                />
-                <span className="zone-radius-unit">km</span>
-                <button
-                  type="button"
-                  className="zone-del"
-                  onClick={() =>
-                    setZones((l) => l.filter((x) => x.cle !== z.cle))
-                  }
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="card anim-hidden" data-anim="" id="section-prefs">
-          <div className="card-head">
-            <div className="card-icon">
-              <IconeCible />
-            </div>
-            <h2>Ce que tu cherches</h2>
-          </div>
-          <p className="card-sub">
-            Intitules de poste, mots-cles — texte libre, une idee par ligne.
-          </p>
-          <textarea
-            rows={4}
-            value={motsCles}
-            placeholder={"Chef de projet numerique\nCharge de communication\nUX/UI designer"}
-            onChange={(e) => setMotsCles(e.target.value)}
-          />
-        </section>
-
-        <section className="card anim-hidden" data-anim="" id="section-notif">
-          <div className="card-head">
-            <div className="card-icon">
-              <IconeCloche size={17} />
-            </div>
-            <h2>Comment te prevenir</h2>
-          </div>
-
-          <label className="switch-row">
-            <span>
-              <strong>Message prive Discord</strong>
-              <span className="switch-row-sub">
-                Le bot Jobrick t'ecrit directement, en @{donnees.user.displayName}
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={notifyDm}
-              onChange={(e) => setNotifyDm(e.target.checked)}
+        <Card id="section-zones" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle>Zones de recherche</CardTitle>
+            <CardDescription>
+              Clique sur la carte pour ajouter un point de recherche.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <CarteZones
+              zones={zones}
+              onAjout={(z) => setZones((l) => [...l, z])}
+              onDeplacement={(cle, lat, lng) =>
+                setZones((l) => l.map((z) => (z.cle === cle ? { ...z, lat, lng } : z)))
+              }
             />
-          </label>
 
-          <div className="info-note">
-            <p>
-              <strong>Plus de webhook a configurer.</strong> Depuis que la
-              connexion passe par Discord, le bot connait deja ton identifiant :
-              il t'ecrit en prive, personne d'autre ne voit tes offres.
-            </p>
-            <p className="info-note-steps">
-              Si tu ne recois rien, verifie que tu acceptes les messages prives
-              des membres du serveur partage avec le bot.
-            </p>
-          </div>
+            {zones.length === 0 ? (
+              <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                <MapPinIcon className="size-4" />
+                Aucune zone pour l&apos;instant.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {zones.map((z) => (
+                  <li key={z.cle} className="flex items-center gap-2">
+                    <Input
+                      value={z.label}
+                      placeholder="Nom du lieu"
+                      onChange={(e) =>
+                        setZones((l) =>
+                          l.map((x) => (x.cle === z.cle ? { ...x, label: e.target.value } : x)),
+                        )
+                      }
+                    />
+                    <div className="relative shrink-0">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={200}
+                        value={z.rayonKm}
+                        className="w-24 pr-8 tabular-nums"
+                        onChange={(e) =>
+                          setZones((l) =>
+                            l.map((x) =>
+                              x.cle === z.cle
+                                ? {
+                                    ...x,
+                                    rayonKm: Math.min(
+                                      200,
+                                      Math.max(1, Number(e.target.value) || 25),
+                                    ),
+                                  }
+                                : x,
+                            ),
+                          )
+                        }
+                      />
+                      <span className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs">
+                        km
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0"
+                      title="Supprimer cette zone"
+                      onClick={() => setZones((l) => l.filter((x) => x.cle !== z.cle))}
+                    >
+                      <TrashIcon />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
 
-          <label className="switch-row switch-row-static">
-            <span>
-              <strong>Directement ici</strong>
-              <span className="switch-row-sub">
-                Les resultats s'affichent toujours plus bas
+        <Card id="section-prefs" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle>Ce que tu cherches</CardTitle>
+            <CardDescription>
+              Intitules de poste, mots-cles — texte libre, une idee par ligne.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              rows={4}
+              value={motsCles}
+              placeholder={"Chef de projet numerique\nCharge de communication\nUX/UI designer"}
+              onChange={(e) => setMotsCles(e.target.value)}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Comment te prevenir</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Label className="flex items-center justify-between gap-4">
+              <span className="flex flex-col gap-0.5">
+                <span className="flex items-center gap-2">
+                  <MessageSquareIcon className="size-4" />
+                  Message prive Discord
+                </span>
+                <span className="text-muted-foreground text-sm font-normal">
+                  Le bot Jobrick t&apos;ecrit directement, en prive
+                </span>
               </span>
-            </span>
-            <input type="checkbox" checked disabled readOnly />
-          </label>
-        </section>
+              <Switch
+                checked={notifyDm}
+                onChange={(e) => setNotifyDm(e.target.checked)}
+              />
+            </Label>
 
-        <div className="save-bar">
-          <button
-            type="button"
-            className={`btn-primary${etat === "encours" ? " is-loading" : ""}${
-              etat === "ok" ? " is-success" : ""
-            }`}
-            disabled={etat === "encours"}
-            onClick={() => void enregistrer()}
-          >
-            <span className="btn-label">
-              {etat === "encours" && <span className="spinner" />}
-              {etat === "ok" && <span className="check">✓</span>}
-              <span className="btn-label-text">
-                {etat === "encours"
-                  ? "Enregistrement…"
-                  : etat === "ok"
-                    ? "Enregistre"
-                    : "Enregistrer"}
-              </span>
-            </span>
-          </button>
+            <Alert variant="muted">
+              <AlertDescription>
+                <p className="text-pretty">
+                  <span className="text-foreground font-medium">
+                    Plus de webhook a configurer.
+                  </span>{" "}
+                  Depuis que la connexion passe par Discord, le bot connait deja
+                  ton identifiant : il t&apos;ecrit en prive, personne d&apos;autre
+                  ne voit tes offres.
+                </p>
+                <p className="text-pretty">
+                  Si tu ne recois rien, verifie que tu acceptes les messages
+                  prives des membres du serveur partage avec le bot.
+                </p>
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+
+        <div className="flex items-center justify-end gap-3">
           {erreur !== null && (
-            <span className="field-status field-status-error">
-              Erreur : {erreur}
-            </span>
+            <span className="text-destructive text-sm">Erreur : {erreur}</span>
           )}
+          <Button type="button" disabled={etat === "encours"} onClick={() => void enregistrer()}>
+            {etat === "encours" && <Loader2Icon className="animate-spin" />}
+            {etat === "ok" && <CheckIcon />}
+            {etat === "encours" ? "Enregistrement…" : etat === "ok" ? "Enregistre" : "Enregistrer"}
+          </Button>
         </div>
 
         <CarteResultats
@@ -382,14 +396,13 @@ function Dashboard() {
             void definirInteret({ data: { id, interet } })
           }}
         />
-      </main>
 
-      <footer className="dash-footer">
-        La veille tourne <strong>deux fois par jour</strong>. Chaque offre est
-        notee par une IA selon ton CV et tes preferences, puis le bot te
-        previent en message prive — les resultats restent aussi consultables ici
-        a tout moment.
-      </footer>
+        <p className="text-muted-foreground py-4 text-center text-sm text-pretty">
+          La veille tourne <span className="text-foreground font-medium">deux fois par jour</span>.
+          Chaque offre est notee par une IA selon ton CV et tes preferences, puis
+          le bot te previent en message prive.
+        </p>
+      </main>
     </div>
   )
 }

@@ -1,14 +1,9 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
-import { useEffect } from "react"
-import { ShapeField } from "../components/ShapeField.tsx"
-import {
-  IconeCloche,
-  IconeDiscord,
-  IconeDocument,
-  IconeGlobe,
-} from "../components/icones.tsx"
-import { initMotion } from "../lib/motion.ts"
-import { moi } from "../server/fn.ts"
+import { BellIcon, FileTextIcon, MapPinIcon, TriangleAlertIcon } from "lucide-react"
+import { LogoDiscord } from "~/components/icones.tsx"
+import { Alert, AlertDescription } from "~/components/ui/alert.tsx"
+import { buttonVariants } from "~/components/ui/button.tsx"
+import { moi } from "~/server/fn.ts"
 
 export const Route = createFileRoute("/")({
   // Deja connecte : on ne montre pas une page de connexion pour rien.
@@ -22,96 +17,83 @@ export const Route = createFileRoute("/")({
 
 const ETAPES = [
   {
-    Icone: IconeDocument,
+    Icone: FileTextIcon,
     titre: "Ton CV pilote tout",
     texte: "Depose-le une fois : il sert a noter chaque offre selon ton profil.",
   },
   {
-    Icone: IconeGlobe,
+    Icone: MapPinIcon,
     titre: "Tes zones, sur la carte",
     texte: "Pointe les villes qui t'interessent, avec un rayon a toi.",
   },
   {
-    Icone: IconeCloche,
+    Icone: BellIcon,
     titre: "Le bot te previent",
-    texte: "Un message prive sur Discord des qu'une offre vaut le coup.",
+    texte: "Un message prive des qu'une offre vaut le coup. Rien de public.",
   },
 ] as const
 
 function Accueil() {
   const { erreur } = Route.useSearch()
-  useEffect(() => initMotion(), [])
 
   return (
-    <div className="landing">
-      <ShapeField
-        blobs={[
-          { depth: 0.18, x: "-8%", y: "4%", size: "380px", couleur: "#5A2E63", opacite: ".5" },
-          { depth: 0.3, x: "74%", y: "48%", size: "260px", couleur: "var(--accent)", opacite: ".08" },
-        ]}
-        formes={[
-          { type: "ring", depth: 0.22, x: "82%", y: "8%", size: "160px" },
-          { type: "triangle", depth: 0.16, x: "6%", y: "64%", size: "100px" },
-          { type: "diamond", depth: 0.26, x: "90%", y: "70%", size: "120px" },
-          { type: "square", depth: 0.12, x: "14%", y: "90%", size: "90px" },
-        ]}
-      />
+    <div className="min-h-svh">
+      <header className="border-b">
+        <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
+          <span className="font-semibold tracking-tight">Jobrick</span>
+          <span className="text-muted-foreground text-sm">Connexion Discord</span>
+        </nav>
+      </header>
 
-      <nav className="nav-pill">
-        <span className="nav-pill-logo">Jobrick</span>
-        <span className="nav-pill-user" style={{ fontSize: 12 }}>
-          Connexion Discord
-        </span>
-      </nav>
+      <main className="mx-auto max-w-5xl px-6">
+        <section className="flex flex-col items-center gap-6 py-20 text-center sm:py-28">
+          <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+            Ta veille d&apos;offres, pilotee par toi.
+          </h1>
+          <p className="text-muted-foreground max-w-xl text-base text-pretty sm:text-lg">
+            Depose ton CV, pointe tes zones sur la carte. Le bot Jobrick t&apos;envoie
+            les bonnes offres en message prive, deux fois par jour.
+          </p>
 
-      <section className="hero-mauve">
-        <span className="hero-eyebrow anim-hidden" data-anim="">
-          Jobrick
-        </span>
-        <h1 className="anim-hidden" data-anim="">
-          Ta veille d'offres,
-          <br />
-          pilotee par toi.
-        </h1>
-        <p className="hero-sub anim-hidden" data-anim="">
-          Depose ton CV, pointe tes zones sur la carte. Le bot Jobrick t'envoie
-          les bonnes offres en message prive, deux fois par jour.
-        </p>
+          {/* Un lien et non un bouton : c'est une navigation vers Discord, qui
+              doit marcher meme si le JavaScript n'a pas encore pris la main. */}
+          <a
+            href="/api/auth/discord"
+            className={buttonVariants({ variant: "discord", size: "xl", className: "mt-2" })}
+          >
+            <LogoDiscord className="size-5" />
+            Continuer avec Discord
+          </a>
 
-        {/* Un lien et non un bouton : c'est une navigation vers Discord, qui
-            doit fonctionner meme si le JavaScript n'a pas encore pris la main. */}
-        <a className="btn-discord anim-hidden" data-anim="" href="/api/auth/discord">
-          <IconeDiscord />
-          Continuer avec Discord
-        </a>
+          {erreur !== undefined && (
+            <Alert variant="destructive" className="max-w-md text-left">
+              <TriangleAlertIcon />
+              <AlertDescription>{erreur}</AlertDescription>
+            </Alert>
+          )}
 
-        {erreur !== undefined && <p className="auth-error">{erreur}</p>}
+          <p className="text-muted-foreground max-w-md text-xs">
+            On ne lit rien de tes serveurs : juste ton pseudo, de quoi
+            t&apos;envoyer un message prive.
+          </p>
+        </section>
 
-        <p className="landing-footnote anim-hidden" data-anim="">
-          Connexion Discord uniquement. On ne lit rien de tes serveurs : juste
-          ton pseudo, de quoi t'envoyer un message prive.
-        </p>
-      </section>
+        <section className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
+          {ETAPES.map(({ Icone, titre, texte }) => (
+            <div key={titre} className="bg-background flex flex-col gap-3 p-6">
+              <Icone className="text-muted-foreground size-5" />
+              <h2 className="font-medium">{titre}</h2>
+              <p className="text-muted-foreground text-sm text-pretty">{texte}</p>
+            </div>
+          ))}
+        </section>
 
-      <section className="explainer">
-        <p className="explainer-text" data-reveal-text="">
+        <p className="text-muted-foreground py-16 text-center text-sm text-pretty">
           Trouver les bonnes offres prend des heures chaque semaine. Avec
           Jobrick, ta veille tourne seule, matin et soir, et ne te montre que ce
           qui vaut vraiment le detour.
         </p>
-      </section>
-
-      <div className="steps">
-        {ETAPES.map(({ Icone, titre, texte }) => (
-          <div className="step-card anim-hidden" data-anim="" key={titre}>
-            <div className="step-icon">
-              <Icone />
-            </div>
-            <h3>{titre}</h3>
-            <p>{texte}</p>
-          </div>
-        ))}
-      </div>
+      </main>
     </div>
   )
 }

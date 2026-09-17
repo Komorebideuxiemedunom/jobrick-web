@@ -21,6 +21,7 @@ postgres-data/
 *.log
 
 # Outils
+.playwright-mcp/
 .DS_Store
 .idea/
 .vscode/*

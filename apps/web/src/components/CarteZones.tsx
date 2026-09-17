@@ -6,8 +6,8 @@
  * ne possede que le conteneur vide.
  */
 import type { Circle, Map as LeafletMap, Marker } from "leaflet"
-import { useEffect, useRef } from "react"
-import type { ZoneBrouillon } from "../lib/zones.ts"
+import { useEffect, useRef, useState } from "react"
+import type { ZoneBrouillon } from "~/lib/zones.ts"
 
 interface Props {
   readonly zones: ReadonlyArray<ZoneBrouillon>
@@ -41,6 +41,11 @@ export function CarteZones({ zones, onAjout, onDeplacement }: Props) {
   const conteneur = useRef<HTMLDivElement>(null)
   const carte = useRef<LeafletMap | null>(null)
   const couches = useRef(new Map<string, { marker: Marker; circle: Circle }>())
+  // Leaflet est charge en asynchrone : sans ce drapeau, les effets de
+  // synchronisation s'executeraient une fois, avant que la carte existe, et
+  // ne se relanceraient jamais — les zones deja enregistrees resteraient
+  // invisibles.
+  const [pret, setPret] = useState(false)
 
   // Les callbacks changent a chaque rendu ; on les lit via une ref pour que
   // les handlers Leaflet, eux, ne soient poses qu'une fois.
@@ -64,6 +69,12 @@ export function CarteZones({ zones, onAjout, onDeplacement }: Props) {
         import("leaflet/dist/images/marker-icon-2x.png?url"),
         import("leaflet/dist/images/marker-shadow.png?url"),
       ])
+      // `_getIconUrl` reconstruit l'URL en la prefixant de l'`imagePath` que
+      // Leaflet devine tout seul : nos URLs deja resolues se retrouveraient
+      // doublees. Le supprimer force Leaflet a lire les options telles quelles.
+      delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)[
+        "_getIconUrl"
+      ]
       L.Icon.Default.mergeOptions({
         iconUrl: icon.default,
         iconRetinaUrl: icon2x.default,
@@ -91,10 +102,12 @@ export function CarteZones({ zones, onAjout, onDeplacement }: Props) {
       })
 
       carte.current = map
+      setPret(true)
       nettoyer = () => {
         map.remove()
         carte.current = null
         couches.current.clear()
+        setPret(false)
       }
     })()
 
@@ -157,7 +170,7 @@ export function CarteZones({ zones, onAjout, onDeplacement }: Props) {
     return () => {
       actif = false
     }
-  }, [zones])
+  }, [zones, pret])
 
   // --- Cadrage initial sur les zones existantes ---
   const cadre = useRef(false)
@@ -170,7 +183,12 @@ export function CarteZones({ zones, onAjout, onDeplacement }: Props) {
       zones.map((z) => [z.lat, z.lng] as [number, number]),
       { maxZoom: 9, padding: [40, 40] },
     )
-  }, [zones])
+  }, [zones, pret])
 
-  return <div id="map" ref={conteneur} />
+  return (
+    <div
+      ref={conteneur}
+      className="h-80 w-full overflow-hidden rounded-lg border"
+    />
+  )
 }

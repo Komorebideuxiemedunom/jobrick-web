@@ -5,27 +5,39 @@
  * l'utilisateur vient de deposer, soit sur celui recupere via `/api/cv`. Le
  * contenu du CV ne part jamais vers un service tiers.
  */
+import {
+  CheckIcon,
+  FileTextIcon,
+  Loader2Icon,
+  ScanLineIcon,
+  UploadIcon,
+  XIcon,
+} from "lucide-react"
 import { useRef, useState } from "react"
-import { LIBELLE_NIVEAU, scanCV, type AtsResultat } from "../lib/ats.ts"
-import { IconeDocument } from "./icones.tsx"
+import { LIBELLE_NIVEAU, scanCV, type AtsResultat } from "~/lib/ats.ts"
+import { cn } from "~/lib/utils.ts"
+import { Badge } from "~/components/ui/badge.tsx"
+import { Button } from "~/components/ui/button.tsx"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card.tsx"
+import { Separator } from "~/components/ui/separator.tsx"
 
 const EXTENSIONS = [".pdf", ".doc", ".docx"]
 const TAILLE_MAX = 10 * 1024 * 1024
 
 interface Props {
-  /** Nom du CV deja enregistre, s'il y en a un. */
   readonly cvEnregistre: string | null
   readonly fichierEnAttente: File | null
   readonly motsCles: string
   readonly onFichier: (f: File | null) => void
 }
 
-export function CarteCv({
-  cvEnregistre,
-  fichierEnAttente,
-  motsCles,
-  onFichier,
-}: Props) {
+export function CarteCv({ cvEnregistre, fichierEnAttente, motsCles, onFichier }: Props) {
   const input = useRef<HTMLInputElement>(null)
   const [survol, setSurvol] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -73,121 +85,152 @@ export function CarteCv({
     }
   }
 
-  const nomAffiche =
-    fichierEnAttente !== null
-      ? `${fichierEnAttente.name} (pas encore enregistre)`
-      : cvEnregistre
+  const aUnCv = fichierEnAttente !== null || cvEnregistre !== null
 
   return (
-    <section className="card anim-hidden" data-anim="" id="section-cv">
-      <div className="card-head">
-        <div className="card-icon">
-          <IconeDocument size={17} />
-        </div>
-        <h2>Ton CV</h2>
-      </div>
-      <p className="card-sub">
-        Il pilote la veille : c'est lui qui determine si une offre te correspond.
-      </p>
+    <Card id="section-cv" className="scroll-mt-20">
+      <CardHeader>
+        <CardTitle>Ton CV</CardTitle>
+        <CardDescription>
+          Il pilote la veille : c&apos;est lui qui determine si une offre te correspond.
+        </CardDescription>
+      </CardHeader>
 
-      <div
-        className={`dropzone${survol ? " dropzone-over" : ""}`}
-        onClick={() => input.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault()
-          setSurvol(true)
-        }}
-        onDragLeave={() => setSurvol(false)}
-        onDrop={(e) => {
-          e.preventDefault()
-          setSurvol(false)
-          const f = e.dataTransfer.files[0]
-          if (f !== undefined) traiter(f)
-        }}
-      >
-        <input
-          ref={input}
-          type="file"
-          accept=".pdf,.doc,.docx"
-          hidden
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f !== undefined) traiter(f)
-          }}
-        />
-        {nomAffiche === null ? (
-          <div>
-            <p>
-              <strong>Glisse ton CV ici</strong> ou clique pour choisir un fichier
-            </p>
-            <p className="dropzone-hint">PDF, DOC ou DOCX — 10 Mo max</p>
-          </div>
-        ) : (
-          <div>
-            <p className="cv-filename">📄 {nomAffiche}</p>
-            <p className="dropzone-hint">Depose un autre fichier pour le remplacer</p>
-          </div>
-        )}
-      </div>
-      {erreur !== null && (
-        <p className="field-status field-status-error">{erreur}</p>
-      )}
-
-      <div className="cv-actions">
+      <CardContent className="flex flex-col gap-4">
         <button
           type="button"
-          className="btn-scan"
-          disabled={nomAffiche === null || scanEnCours}
-          onClick={() => void lancerScan()}
+          onClick={() => input.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setSurvol(true)
+          }}
+          onDragLeave={() => setSurvol(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            setSurvol(false)
+            const f = e.dataTransfer.files[0]
+            if (f !== undefined) traiter(f)
+          }}
+          className={cn(
+            "flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-10 text-center transition-colors",
+            "hover:bg-accent/50 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none",
+            survol && "border-primary bg-accent",
+          )}
         >
-          Scanner mon CV (ATS)
+          <input
+            ref={input}
+            type="file"
+            accept=".pdf,.doc,.docx"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f !== undefined) traiter(f)
+            }}
+          />
+          {aUnCv ? (
+            <>
+              <FileTextIcon className="text-muted-foreground size-5" />
+              <span className="flex items-center gap-2 text-sm font-medium">
+                {fichierEnAttente?.name ?? cvEnregistre}
+                {fichierEnAttente !== null && (
+                  <Badge variant="secondary">pas encore enregistre</Badge>
+                )}
+              </span>
+              <span className="text-muted-foreground text-xs">
+                Depose un autre fichier pour le remplacer
+              </span>
+            </>
+          ) : (
+            <>
+              <UploadIcon className="text-muted-foreground size-5" />
+              <span className="text-sm font-medium">
+                Glisse ton CV ici, ou clique pour choisir un fichier
+              </span>
+              <span className="text-muted-foreground text-xs">
+                PDF, DOC ou DOCX — 10 Mo max
+              </span>
+            </>
+          )}
         </button>
-        <span
-          className={`field-status${erreurScan !== null ? " field-status-error" : ""}`}
-        >
-          {scanEnCours ? "Analyse en cours…" : (erreurScan ?? "")}
-        </span>
-      </div>
 
-      {resultat !== null && <PanneauAts resultat={resultat} />}
-    </section>
+        {erreur !== null && <p className="text-destructive text-sm">{erreur}</p>}
+
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!aUnCv || scanEnCours}
+            onClick={() => void lancerScan()}
+          >
+            {scanEnCours ? (
+              <Loader2Icon className="animate-spin" />
+            ) : (
+              <ScanLineIcon />
+            )}
+            {scanEnCours ? "Analyse en cours…" : "Scanner mon CV (ATS)"}
+          </Button>
+          {erreurScan !== null && (
+            <span className="text-destructive text-sm">{erreurScan}</span>
+          )}
+        </div>
+
+        {resultat !== null && <PanneauAts resultat={resultat} />}
+      </CardContent>
+    </Card>
   )
 }
+
+const VARIANTE_NIVEAU = {
+  good: "success",
+  warn: "warning",
+  bad: "destructive",
+  inconnu: "secondary",
+} as const
 
 function PanneauAts({ resultat }: { readonly resultat: AtsResultat }) {
   if (resultat.score === null) {
     const premier = resultat.checks[0]
     return (
-      <div className="ats-panel">
-        <p className="ats-note">{premier?.detail ?? premier?.label}</p>
+      <div className="bg-muted/50 rounded-lg p-4">
+        <p className="text-muted-foreground text-sm">
+          {premier?.detail ?? premier?.label}
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="ats-panel">
-      <div className="ats-score-row">
-        <div className={`ats-score-badge is-${resultat.niveau}`}>
-          {resultat.score}
-        </div>
-        <div className="ats-score-label">
-          <strong>{LIBELLE_NIVEAU[resultat.niveau]}</strong>
-          <br />
-          Score indicatif sur 100
+    <div className="bg-muted/50 flex flex-col gap-4 rounded-lg p-4">
+      <div className="flex items-center gap-4">
+        <div className="text-3xl font-semibold tabular-nums">{resultat.score}</div>
+        <div className="flex flex-col gap-1">
+          <Badge variant={VARIANTE_NIVEAU[resultat.niveau]} className="w-fit">
+            {LIBELLE_NIVEAU[resultat.niveau]}
+          </Badge>
+          <span className="text-muted-foreground text-xs">Score indicatif sur 100</span>
         </div>
       </div>
-      <ul className="ats-checks">
+
+      <Separator />
+
+      <ul className="flex flex-col gap-2">
         {resultat.checks.map((c, i) => (
-          <li key={i} className={c.pass ? "" : "is-fail"}>
-            <span className="ats-icon">{c.pass ? "✓" : "✕"}</span>
-            {c.label}
+          <li key={i} className="flex items-start gap-2 text-sm">
+            {c.pass ? (
+              <CheckIcon className="text-success mt-0.5 size-4 shrink-0" />
+            ) : (
+              <XIcon className="text-destructive mt-0.5 size-4 shrink-0" />
+            )}
+            <span className={cn(!c.pass && "text-muted-foreground")}>{c.label}</span>
           </li>
         ))}
       </ul>
-      <p className="ats-note">
+
+      <p className="text-muted-foreground text-xs text-pretty">
         Analyse indicative, executee dans ton navigateur — aucun contenu du CV
-        n'est envoye a un serveur externe. Elle ne garantit pas le passage d'un
-        ATS reel, mais repere les blocages les plus frequents.
+        n&apos;est envoye a un serveur externe. Elle ne garantit pas le passage
+        d&apos;un ATS reel, mais repere les blocages les plus frequents.
       </p>
     </div>
   )

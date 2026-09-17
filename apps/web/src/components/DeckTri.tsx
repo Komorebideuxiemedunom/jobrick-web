@@ -2,8 +2,12 @@
  * Mode tri : une offre a la fois, qu'on pousse a droite (interessant) ou a
  * gauche (ecarte), a la souris/au doigt ou avec les deux boutons.
  */
+import { HeartIcon, XIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import type { OffreDto } from "../server/dto.ts"
+import { cn } from "~/lib/utils.ts"
+import type { OffreDto } from "~/server/dto.ts"
+import { Badge } from "~/components/ui/badge.tsx"
+import { Button } from "~/components/ui/button.tsx"
 
 /** Distance a partir de laquelle un glisser vaut decision. */
 const SEUIL_PX = 100
@@ -15,7 +19,6 @@ export function DeckTri({
   readonly offres: ReadonlyArray<OffreDto>
   readonly onDecision: (id: string, interet: boolean) => void
 }) {
-  const carte = useRef<HTMLDivElement>(null)
   const [dx, setDx] = useState(0)
   const [partante, setPartante] = useState<boolean | null>(null)
   const depart = useRef<number | null>(null)
@@ -30,12 +33,8 @@ export function DeckTri({
 
   if (courante === undefined) {
     return (
-      <div id="swipe-section">
-        <div className="swipe-deck">
-          <div className="swipe-empty">
-            Tout est trie ! Reviens plus tard pour de nouvelles offres.
-          </div>
-        </div>
+      <div className="text-muted-foreground flex min-h-64 items-center justify-center rounded-lg border border-dashed text-sm text-pretty">
+        Tout est trie ! Reviens plus tard pour de nouvelles offres.
       </div>
     )
   }
@@ -55,15 +54,14 @@ export function DeckTri({
 
   const transform =
     partante !== null
-      ? `translateX(${partante ? 600 : -600}px) rotate(${partante ? 20 : -20}deg)`
-      : `translateX(${dx}px) rotate(${dx / 18}deg)`
+      ? `translateX(${partante ? 600 : -600}px) rotate(${partante ? 16 : -16}deg)`
+      : `translateX(${dx}px) rotate(${dx / 22}deg)`
 
   return (
-    <div id="swipe-section">
-      <div className="swipe-deck">
+    <div className="flex flex-col items-center gap-6 py-2">
+      <div className="flex w-full max-w-md justify-center">
         <div
-          ref={carte}
-          className="swipe-card"
+          className="bg-card relative w-full cursor-grab touch-none rounded-xl border p-6 shadow-sm select-none active:cursor-grabbing"
           style={{
             transform,
             opacity: partante !== null ? 0 : 1,
@@ -84,45 +82,59 @@ export function DeckTri({
           onPointerCancel={relacher}
         >
           <span
-            className="swipe-stamp swipe-stamp--like"
+            className="text-success absolute top-5 left-5 rotate-[-12deg] rounded-md border-2 border-current px-2 py-0.5 text-sm font-bold"
             style={{ opacity: Math.max(0, Math.min(1, dx / 80)) }}
           >
             INTERESSE
           </span>
           <span
-            className="swipe-stamp swipe-stamp--nope"
+            className="text-destructive absolute top-5 right-5 rotate-12 rounded-md border-2 border-current px-2 py-0.5 text-sm font-bold"
             style={{ opacity: Math.max(0, Math.min(1, -dx / 80)) }}
           >
             PASSE
           </span>
-          <div className="result-score">{courante.score ?? "–"}</div>
-          <div className="result-title">{courante.titre ?? "Sans titre"}</div>
-          <div className="result-meta">
-            {courante.employeur ?? ""} · {courante.lieu ?? ""}
+
+          <div className="flex flex-col gap-3 pt-10">
+            <Badge variant="secondary" className="w-fit tabular-nums">
+              {courante.score ?? "–"}
+            </Badge>
+            <h3 className="text-lg font-medium text-pretty">
+              {courante.titre ?? "Sans titre"}
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              {[courante.employeur, courante.lieu].filter(Boolean).join(" · ")}
+            </p>
+            {courante.raison !== null && (
+              <p className="text-muted-foreground text-sm text-pretty">{courante.raison}</p>
+            )}
           </div>
-          {courante.raison !== null && (
-            <div className="result-reason">{courante.raison}</div>
-          )}
         </div>
       </div>
 
-      <div className="swipe-actions">
-        <button
+      <div className="flex items-center gap-4">
+        <Button
           type="button"
-          className="swipe-btn swipe-btn--no"
+          variant="outline"
+          size="icon"
+          className={cn("size-12 rounded-full", "hover:text-destructive")}
           title="Pas interesse"
           onClick={() => valider(false)}
         >
-          ✕
-        </button>
-        <button
+          <XIcon className="size-5" />
+        </Button>
+        <span className="text-muted-foreground text-xs tabular-nums">
+          {offres.length} a trier
+        </span>
+        <Button
           type="button"
-          className="swipe-btn swipe-btn--yes"
+          variant="outline"
+          size="icon"
+          className={cn("size-12 rounded-full", "hover:text-success")}
           title="Interessant"
           onClick={() => valider(true)}
         >
-          ♥
-        </button>
+          <HeartIcon className="size-5" />
+        </Button>
       </div>
     </div>
   )
