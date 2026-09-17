@@ -627,6 +627,7 @@ input[type="url"] { margin-top: 10px; }
   border-radius: var(--radius-sm);
   display: flex; flex-direction: column; gap: 7px;
 }
+.reseau-panel[hidden] { display: none; }
 .reseau-panel a { font-size: 12.5px; color: var(--accent); text-decoration: none; }
 .reseau-panel a:hover { text-decoration: underline; }
 .relance-panel {
