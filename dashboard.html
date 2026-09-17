@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Tableau de bord — Jobrick</title>
+
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body class="dashboard">
+
+  <header class="topbar">
+    <div class="topbar-logo">Jobrick</div>
+    <div class="topbar-user">
+      <span id="user-email"></span>
+      <button id="btn-logout" class="btn-ghost">Se deconnecter</button>
+    </div>
+  </header>
+
+  <main class="dash-main">
+
+    <!-- CV -->
+    <section class="card" id="section-cv">
+      <h2>Ton CV</h2>
+      <p class="card-sub">Il pilote la veille : c'est lui qui determine si une offre te correspond.</p>
+
+      <div id="dropzone" class="dropzone">
+        <input type="file" id="cv-input" accept=".pdf,.doc,.docx" hidden>
+        <div id="dropzone-empty">
+          <p><strong>Glisse ton CV ici</strong> ou clique pour choisir un fichier</p>
+          <p class="dropzone-hint">PDF, DOC ou DOCX — 10 Mo max</p>
+        </div>
+        <div id="dropzone-filled" hidden>
+          <p class="cv-filename">📄 <span id="cv-filename-text"></span></p>
+          <p class="dropzone-hint">Depose un autre fichier pour le remplacer</p>
+        </div>
+      </div>
+      <p id="cv-status" class="field-status"></p>
+    </section>
+
+    <!-- Zones -->
+    <section class="card" id="section-zones">
+      <h2>Zones de recherche</h2>
+      <p class="card-sub">Clique sur la carte pour ajouter un point de recherche.</p>
+
+      <div id="map"></div>
+
+      <ul id="zones-list" class="zones-list"></ul>
+    </section>
+
+    <!-- Preferences -->
+    <section class="card" id="section-prefs">
+      <h2>Ce que tu cherches</h2>
+      <p class="card-sub">Intitules de poste, mots-cles — texte libre, une idee par ligne.</p>
+      <textarea id="job-keywords" rows="4" placeholder="Chef de projet numerique&#10;Charge de communication&#10;UX/UI designer"></textarea>
+    </section>
+
+    <!-- Notifications -->
+    <section class="card" id="section-notif">
+      <h2>Comment te prevenir</h2>
+
+      <label class="switch-row">
+        <span>
+          <strong>Email</strong>
+          <span class="switch-row-sub" id="notif-email-addr"></span>
+        </span>
+        <input type="checkbox" id="notify-email" checked>
+      </label>
+
+      <label class="switch-row">
+        <span>
+          <strong>Discord</strong>
+          <span class="switch-row-sub">Webhook d'un salon de ton serveur</span>
+        </span>
+        <input type="checkbox" id="notify-discord">
+      </label>
+      <input type="url" id="discord-webhook" placeholder="https://discord.com/api/webhooks/…" hidden>
+
+      <label class="switch-row switch-row-static">
+        <span>
+          <strong>Directement ici</strong>
+          <span class="switch-row-sub">Les resultats s'affichent toujours plus bas</span>
+        </span>
+        <input type="checkbox" checked disabled>
+      </label>
+    </section>
+
+    <div class="save-bar">
+      <button id="btn-save" class="btn-primary">Enregistrer</button>
+      <span id="save-status" class="field-status"></span>
+    </div>
+
+    <!-- Resultats -->
+    <section class="card" id="section-results">
+      <h2>Dernieres offres trouvees</h2>
+      <div id="results-list"></div>
+    </section>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/supabase-client.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+</body>
+</html>
