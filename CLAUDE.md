@@ -1,4 +1,4 @@
-# Jobrick — site + bot
+# Jobrick : site + bot
 
 Veille d'offres d'emploi personnelle : l'utilisateur depose son CV, pointe ses
 zones sur une carte, et le bot Discord lui envoie les bonnes offres en message
@@ -10,8 +10,8 @@ Monorepo **pnpm**. Node 22, TypeScript 5.9, tout en ESM.
 
 | Paquet | Role |
 | --- | --- |
-| `apps/web` | Site — TanStack Start (React 19, Vite 8), SSR, Tailwind 4 + shadcn |
-| `apps/bot` | Bot Discord — discord.js 14 |
+| `apps/web` | Site : TanStack Start (React 19, Vite 8), SSR, Tailwind 4 + shadcn |
+| `apps/bot` | Bot Discord : discord.js 14 |
 | `packages/core` | Modele metier partage (Effect Schema) |
 | `packages/db` | Postgres : migrations SQL + depots Effect |
 
@@ -29,6 +29,7 @@ pnpm db:smoke       # passage complet de la couche donnees, contre la vraie base
 pnpm dev            # site sur http://localhost:3000
 pnpm dev:bot        # bot (necessite un token Discord)
 pnpm typecheck      # tous les paquets
+pnpm test           # garde-fous du depot (typographie)
 pnpm build          # tous les paquets
 ```
 
@@ -41,7 +42,7 @@ toujours sur `main`. La v2 (branche `dev`) change quatre choses :
   reste : on connait desormais l'identifiant Discord de l'utilisateur sans
   qu'il ait a le chercher dans ses reglages.
 - **Le webhook disparait au profit du bot.** La v1 poussait les offres dans un
-  salon via un webhook, ou tout le monde voyait les offres de tout le monde —
+  salon via un webhook, ou tout le monde voyait les offres de tout le monde -
   d'ou la bidouille de l'ID Discord pour @-mentionner. Le bot envoie un DM, et
   ses boutons ecrivent directement en base.
 - **Supabase disparait.** Auth, base et stockage etaient delegues ; ils sont
@@ -80,17 +81,29 @@ joues dans l'ordre, une transaction chacun, jamais modifies retroactivement :
 on en ajoute un nouveau. Le conteneur web les joue au demarrage.
 
 **Interface.** Tailwind v4 (config dans `src/styles/app.css`, pas de
-`tailwind.config`) et composants shadcn dans `src/components/ui/`. Base zinc,
-clair et sombre, le theme suit le systeme via un script inline dans
-`__root.tsx`. Les composants sont ecrits a la main plutot que poses par la CLI
+`tailwind.config`) et composants shadcn dans `src/components/ui/`. La DA est
+violette : violet franc sur lavande, encre bleu nuit, Plus Jakarta Sans en 800
+pour les titres, angles genereux. Deux regles portent le systeme : les actions
+secondaires sont des aplats lavande a texte violet (variante `secondary`),
+jamais des contours gris ; et le point de « Jobrick. » est le seul ornement.
+Le theme se choisit via `BasculeTheme` (clair / sombre / systeme, retenu dans
+`localStorage`) et s'applique avant le premier rendu par un script inline dans
+`__root.tsx` : sans lui, la page clignoterait en clair. Les composants sont ecrits a la main plutot que poses par la CLI
 shadcn : `switch`, `checkbox` et `select` s'appuient sur les elements natifs,
 plus accessibles et sans dependance Radix. Pour en ajouter un que le natif ne
 couvre pas (dialogue, menu, combobox), reprendre le code shadcn et lui ajouter
-sa dependance Radix — la CLI v4 attend une `components.json` incompatible avec
+sa dependance Radix : la CLI v4 attend une `components.json` incompatible avec
 ce setup.
 
 **Langue.** Code, commentaires et commits en francais, sans accents dans les
-identifiants. Les commentaires expliquent *pourquoi*, pas *quoi*.
+identifiants. En revanche **la copie visible par l'utilisateur porte ses
+accents** : c'est du francais correct, pas du code. Les commentaires expliquent
+*pourquoi*, pas *quoi*.
+
+**Pas de tiret cadratin.** Nulle part, code et documentation comprise : c'est
+la signature la plus reconnaissable d'un texte genere. Le deux-points ou la
+virgule font le meme travail. `tests/typographie.test.ts` echoue s'il en
+reapparait un.
 
 ## Pieges connus
 
@@ -108,8 +121,12 @@ identifiants. Les commentaires expliquent *pourquoi*, pas *quoi*.
   `applications.commands`.
 - Leaflet se charge en asynchrone : les effets qui synchronisent les couches
   dependent d'un drapeau `pret`, sinon ils tournent avant que la carte existe
-  et les zones enregistrees restent invisibles. Ses icones par defaut
-  demandent aussi de supprimer `_getIconUrl`, qui prefixerait nos URLs
-  resolues.
+  et les zones enregistrees restent invisibles.
+- Fond de carte : OpenStreetMap, sans clef d'API. CARTO a ete essaye et
+  rejete, ses tuiles renvoient un bandeau « API KEY REQUIRED ». En mode sombre
+  la carte est assombrie par un filtre CSS, jamais inversee : l'inversion
+  virait au vert sale et rendait les libelles illisibles.
+- Les marqueurs sont des `divIcon` en HTML et non l'icone PNG de Leaflet :
+  ils lisent leurs couleurs dans les tokens CSS, donc suivent le theme.
 - L'alias `~` est declare deux fois, dans `tsconfig.json` et dans
   `vite.config.ts` : le serveur de dev ne lit pas les `paths` du tsconfig.
