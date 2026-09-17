@@ -30,6 +30,11 @@ export const Route = createRootRouteWithContext<{
       { name: "color-scheme", content: "light dark" },
     ],
     links: [
+      // Le SVG sert partout ou il est compris, l'ICO reste pour les
+      // navigateurs qui ne lisent que lui et pour les requetes a la racine.
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", sizes: "32x32", href: "/favicon.ico" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
