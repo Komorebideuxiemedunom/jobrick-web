@@ -1,0 +1,95 @@
+# Jobrick — site + bot
+
+Veille d'offres d'emploi personnelle : l'utilisateur depose son CV, pointe ses
+zones sur une carte, et le bot Discord lui envoie les bonnes offres en message
+prive. Le depot est public et ne contient aucune donnee personnelle.
+
+## Stack
+
+Monorepo **pnpm**. Node 22, TypeScript 5.9, tout en ESM.
+
+| Paquet | Role |
+| --- | --- |
+| `apps/web` | Site — TanStack Start (React 19, Vite 8), SSR |
+| `apps/bot` | Bot Discord — discord.js 14 |
+| `packages/core` | Modele metier partage (Effect Schema) |
+| `packages/db` | Postgres : migrations SQL + depots Effect |
+
+**Effect** est la colonne vertebrale cote serveur : services (`Effect.Service`),
+couches (`Layer`), configuration (`Config`), acces SQL (`@effect/sql-pg`).
+Postgres est self-hosted (Docker), la production tourne sur **Dokploy**.
+
+## Commandes
+
+```bash
+pnpm install
+pnpm db:up          # Postgres local (port hote 5434)
+pnpm db:migrate     # joue les migrations
+pnpm db:smoke       # passage complet de la couche donnees, contre la vraie base
+pnpm dev            # site sur http://localhost:3000
+pnpm dev:bot        # bot (necessite un token Discord)
+pnpm typecheck      # tous les paquets
+pnpm build          # tous les paquets
+```
+
+## Ce qui a change depuis la v1 (et pourquoi)
+
+La v1 etait un site statique sur GitHub Pages, adosse a Supabase. Elle vit
+toujours sur `main`. La v2 (branche `dev`) change quatre choses :
+
+- **L'identite passe de Google a Discord.** C'est ce qui debloque tout le
+  reste : on connait desormais l'identifiant Discord de l'utilisateur sans
+  qu'il ait a le chercher dans ses reglages.
+- **Le webhook disparait au profit du bot.** La v1 poussait les offres dans un
+  salon via un webhook, ou tout le monde voyait les offres de tout le monde —
+  d'ou la bidouille de l'ID Discord pour @-mentionner. Le bot envoie un DM, et
+  ses boutons ecrivent directement en base.
+- **Supabase disparait.** Auth, base et stockage etaient delegues ; ils sont
+  maintenant dans le code et dans Postgres. Les CV vivent en `bytea`.
+- **Plus de RLS.** La securite ne vient plus de la base mais du code serveur,
+  seul a parler a Postgres. Toute requete porte son `user_id`.
+
+## Regles a tenir
+
+**Autorisation.** Le navigateur n'a aucun acces a Postgres. Chaque server
+function commence par `exigerUtilisateur()`, et chaque methode de depot porte
+le `user_id` dans son `where`. Les deux, pas l'un ou l'autre : c'est ce qui
+remplace les policies RLS supprimees. `packages/db/src/smoke.ts` verifie
+explicitement qu'un compte ne peut pas toucher les offres d'un autre.
+
+**Rien de serveur dans le bundle client.** `apps/web/src/start.ts` est evalue
+des deux cotes : le module d'API y est charge par `await import()`, jamais par
+un import statique. Apres un changement touchant `src/server/`, verifier :
+
+```bash
+pnpm --filter @jobrick/web build
+grep -rl 'postgres\|DATABASE_URL' apps/web/dist/client/assets/*.js   # doit etre vide
+```
+
+**Routes HTTP brutes.** TanStack Start n'a pas de fichiers de route serveur ici :
+`/api/*` est servi par un *request middleware* declare dans `start.ts`, qui
+renvoie une `Response`. C'est necessaire pour le callback OAuth (Discord
+redirige le navigateur) et pour `/api/cv` (telechargement binaire).
+
+**Le CV ne part jamais ailleurs.** Le scan ATS tourne dans le navigateur
+(pdf.js, mammoth), sur un fichier venu du disque ou de `/api/cv`. Ne pas
+deplacer cette analyse cote serveur ni vers un service tiers.
+
+**Migrations.** Fichiers `.sql` numerotes dans `packages/db/src/migrations/`,
+joues dans l'ordre, une transaction chacun, jamais modifies retroactivement :
+on en ajoute un nouveau. Le conteneur web les joue au demarrage.
+
+**Langue.** Code, commentaires et commits en francais, sans accents dans les
+identifiants. Les commentaires expliquent *pourquoi*, pas *quoi*.
+
+## Pieges connus
+
+- Le bot tourne en `node --experimental-strip-types` : imports relatifs avec
+  extension `.ts` obligatoire, et pas d'`enum` ni de `namespace`.
+- L'image Docker embarque tout `node_modules` (~630 Mo). Le serveur SSR garde
+  des imports vers les paquets installes ; un elagage casserait les liens du
+  workspace. A retravailler si la taille devient genante.
+- Postgres local ecoute sur **5434**, pas 5432 (plusieurs projets en
+  parallele sur la machine). Surchargeable avec `POSTGRES_PORT`.
+- Un DM refuse (parametres de confidentialite) n'est pas une erreur : l'offre
+  reste dans la file et l'utilisateur la voit sur le dashboard.
