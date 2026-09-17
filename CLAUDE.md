@@ -135,6 +135,10 @@ reapparait un.
   globale toute neuve. Corollaire : un payload invalide ne casse ni le
   typecheck ni le build, il fait echouer le demarrage du bot. C'est ce que
   `tests/commandes.test.ts` verifie a la place.
+- `apps/web/src/routeTree.gen.ts` est fabrique par le plugin TanStack Router,
+  pendant le dev ou le build, et ignore par git. Sur un clone frais, un
+  `pnpm typecheck` lance avant tout build echoue sur ce fichier absent : c'est
+  pour ca que la CI construit d'abord.
 - Le bot tourne en `node --experimental-strip-types` : imports relatifs avec
   extension `.ts` obligatoire, et pas d'`enum` ni de `namespace`.
 - L'image Docker embarque tout `node_modules` (~630 Mo). Le serveur SSR garde

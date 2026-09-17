@@ -48,21 +48,24 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Typage
-        run: pnpm typecheck
-
       # Typographie, et validite des commandes slash : un payload refuse par
       # Discord ne se verrait qu'au demarrage du bot, donc en production.
       - name: Garde-fous du depot
         run: pnpm test
 
+      # Avant le typage, et non apres : `apps/web/src/routeTree.gen.ts` est
+      # produit par le plugin TanStack Router et ignore par git. Un clone frais
+      # ne l'a pas, et `tsc` ne sait pas le fabriquer.
+      - name: Build
+        run: pnpm build
+
+      - name: Typage
+        run: pnpm typecheck
+
       - name: Migrations et couche donnees
         run: |
           pnpm db:migrate
           pnpm db:smoke
-
-      - name: Build
-        run: pnpm build
 
       # Regle du depot : le navigateur n'a aucun acces a Postgres. Un import
       # statique mal place suffirait a faire passer le module serveur dans le
