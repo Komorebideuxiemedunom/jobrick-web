@@ -1,0 +1,54 @@
+# Pile complete, pour Dokploy (type d'application : Docker Compose).
+#
+# Les variables sensibles ne sont pas ici : elles se renseignent dans
+# l'onglet Environment de Dokploy, qui les injecte au demarrage.
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jobrick}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?mot de passe Postgres requis}
+      POSTGRES_DB: ${POSTGRES_DB:-jobrick}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jobrick}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-jobrick}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-jobrick}
+      PUBLIC_URL: ${PUBLIC_URL:?URL publique requise}
+      COOKIE_SECURE: "true"
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:?}
+    expose:
+      - "3000"
+
+  bot:
+    build:
+      context: .
+      target: bot
+    restart: unless-stopped
+    depends_on:
+      # Les migrations sont jouees par le service web : le bot demarre apres,
+      # sur un schema deja a jour.
+      web: { condition: service_started }
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-jobrick}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-jobrick}
+      PUBLIC_URL: ${PUBLIC_URL:?}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?}
+      DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID:?}
+
+volumes:
+  postgres-data:
