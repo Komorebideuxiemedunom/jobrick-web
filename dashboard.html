@@ -147,13 +147,22 @@
         <input type="checkbox" id="notify-discord">
       </label>
       <input type="url" id="discord-webhook" placeholder="https://discord.com/api/webhooks/…" hidden>
-      <input type="text" id="discord-user-id" placeholder="Ton ID Discord (pour etre @-mentionne, pas juste notifie)" hidden>
-      <p class="field-status" id="discord-user-id-hint" hidden>
-        Optionnel mais conseille si le webhook est partage avec quelqu'un
-        d'autre : sans ca, tout le monde voit toutes les notifs. Pour le
-        trouver — Discord : Reglages → Avance → active le Mode developpeur,
-        puis clic droit sur ton profil → Copier l'identifiant.
-      </p>
+      <input type="text" id="discord-user-id" placeholder="Ton identifiant Discord — que des chiffres, ex. 123456789012345678" hidden>
+      <div class="discord-id-help" id="discord-user-id-hint" hidden>
+        <p>
+          <strong>Ton pseudo ne suffit pas</strong> — "komorebideuxiemedunom"
+          sert a te trouver dans l'appli, mais un message automatique ne
+          peut te @-mentionner qu'avec ton <strong>identifiant numerique</strong>
+          (18 chiffres, invisible par defaut).
+        </p>
+        <p class="discord-id-steps">
+          Reglages → Vie privee et securite → active <strong>Mode developpeur</strong>,
+          puis clic droit sur ton profil → <strong>Copier l'identifiant</strong>.
+        </p>
+        <a href="https://support.discord.com/hc/en-us/articles/206346498" target="_blank" rel="noopener noreferrer">
+          Voir le guide officiel Discord →
+        </a>
+      </div>
 
       <label class="switch-row switch-row-static">
         <span>

@@ -405,6 +405,22 @@ input[type="url"] { margin-top: 10px; }
 .switch-row-sub { display: block; color: var(--ink-muted); font-size: 12px; font-weight: 400; }
 .switch-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
 
+.discord-id-help {
+  margin-top: 10px;
+  padding: 14px 16px;
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--ink);
+  line-height: 1.6;
+}
+.discord-id-help p { margin: 0 0 8px; }
+.discord-id-help p:last-of-type { margin-bottom: 10px; }
+.discord-id-help strong { color: var(--ink); }
+.discord-id-help .discord-id-steps { color: var(--ink-muted); }
+.discord-id-help a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.discord-id-help a:hover { text-decoration: underline; }
+
 /* Save bar */
 .save-bar { display: flex; align-items: center; gap: 14px; justify-content: flex-end; }
 .btn-primary {
