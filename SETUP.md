@@ -1,14 +1,14 @@
-# Jobrick — site web
+# Jobrick : site web
 
 Tableau de bord pour piloter la veille Jobrick : connexion Discord, depot du
 CV, zones de recherche sur carte, preferences, notifications par message prive.
 
 Ce depot est volontairement separe de [Jobrick](https://github.com/Komorebideuxiemedunom/Jobrick)
 (prive) : il ne contient que le code, aucune donnee personnelle. Les CV, zones
-et profils vivent dans Postgres, pas ici — c'est pour ca qu'il peut etre public
+et profils vivent dans Postgres, pas ici : c'est pour ca qu'il peut etre public
 sans risque.
 
-> **Branche `dev`** — refonte complete : TanStack Start + Effect + Postgres,
+> **Branche `dev`** : refonte complete : TanStack Start + Effect + Postgres,
 > connexion Discord, bot a la place du webhook. La v1 (site statique +
 > Supabase) reste sur `main`. Voir `CLAUDE.md` pour l'architecture.
 
@@ -34,7 +34,7 @@ pnpm db:smoke
 Tout se passe sur le [portail developpeur](https://discord.com/developers/applications).
 Une seule application porte a la fois la connexion (OAuth2) et le bot.
 
-### 1. OAuth2 — la connexion au site
+### 1. OAuth2 : la connexion au site
 
 Onglet **OAuth2** :
 
@@ -45,13 +45,13 @@ Onglet **OAuth2** :
 - **Cle secrete du client** → `DISCORD_CLIENT_SECRET`
 
 > La cle secrete ne s'affiche qu'a sa creation. Si elle est perdue, il faut la
-> reinitialiser — ce qui invalide l'ancienne. Discord demande une
+> reinitialiser : ce qui invalide l'ancienne. Discord demande une
 > authentification multi-facteurs pour cette operation.
 
 Les portees demandees sont `identify` et `email`, rien de plus : le site ne lit
 aucun de tes serveurs.
 
-### 2. Bot — les messages prives
+### 2. Bot : les messages prives
 
 Onglet **Bot** :
 

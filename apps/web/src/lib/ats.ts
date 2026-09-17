@@ -146,7 +146,7 @@ export const scanCV = async (
       label:
         nb >= 2
           ? "Sections standards detectees (experience, formation, competences...)"
-          : "Peu de sections standards detectees — utilise des intitules classiques",
+          : "Peu de sections standards detectees : utilise des intitules classiques",
       pass: nb >= 2,
     })
     score += Math.round((15 * Math.min(nb, 4)) / 4)

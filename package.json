@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.5.2",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "pnpm --filter @jobrick/web dev",
     "dev:bot": "pnpm --filter @jobrick/bot dev",
@@ -11,7 +13,8 @@
     "typecheck": "pnpm -r typecheck",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
-    "db:migrate": "pnpm --filter @jobrick/db migrate"
+    "db:migrate": "pnpm --filter @jobrick/db migrate",
+    "test": "node --experimental-strip-types --test 'tests/**/*.test.ts'"
   },
   "devDependencies": {
     "typescript": "5.9.3",

@@ -2,7 +2,7 @@
 import { Config, Duration } from "effect"
 
 export const BotConfig = Config.all({
-  /** Jeton du bot — onglet "Bot" du portail developpeur Discord. */
+  /** Jeton du bot : onglet "Bot" du portail developpeur Discord. */
   token: Config.redacted("DISCORD_BOT_TOKEN"),
   /** Identifiant de l'application, pour publier les commandes. */
   applicationId: Config.string("DISCORD_APPLICATION_ID"),

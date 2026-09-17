@@ -1,7 +1,7 @@
 /**
  * Instance Start : c'est ici qu'on greffe les routes HTTP brutes.
  *
- * Le module d'API est charge dynamiquement dans le handler `.server()` — le
+ * Le module d'API est charge dynamiquement dans le handler `.server()` : le
  * fichier de demarrage est aussi evalue cote client, et un import statique y
  * ferait entrer Postgres et les secrets dans le bundle du navigateur.
  */

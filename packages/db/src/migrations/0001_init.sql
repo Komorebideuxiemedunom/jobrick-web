@@ -1,4 +1,4 @@
--- Jobrick v2 — schema initial.
+-- Jobrick v2 : schema initial.
 --
 -- Difference majeure avec la v1 Supabase : plus de RLS. L'autorisation ne
 -- vient plus de la base mais du code serveur, qui est le seul a parler a

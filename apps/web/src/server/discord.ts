@@ -1,5 +1,5 @@
 /**
- * OAuth2 Discord — flot "authorization code", ecrit a la main.
+ * OAuth2 Discord : flot "authorization code", ecrit a la main.
  *
  * C'est deux appels HTTP et une redirection : une librairie dediee
  * n'apporterait rien ici (la seule candidate serieuse, arctic, est depreciee).

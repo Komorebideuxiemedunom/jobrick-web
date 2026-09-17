@@ -2,7 +2,7 @@
 import { Config } from "effect"
 
 export const AppConfig = Config.all({
-  /** Application Discord — onglet OAuth2 du portail developpeur. */
+  /** Application Discord : onglet OAuth2 du portail developpeur. */
   discordClientId: Config.string("DISCORD_CLIENT_ID"),
   discordClientSecret: Config.redacted("DISCORD_CLIENT_SECRET"),
   /**

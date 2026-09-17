@@ -3,7 +3,7 @@
  * message prive.
  *
  * Une offre n'est marquee comme notifiee que si le DM est effectivement parti.
- * Si l'utilisateur refuse les messages prives, elle reste en file — il la
+ * Si l'utilisateur refuse les messages prives, elle reste en file : il la
  * verra sur le dashboard, et la recevra si un jour il les rouvre.
  */
 import { JobResults } from "@jobrick/db"

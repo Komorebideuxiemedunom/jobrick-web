@@ -27,7 +27,7 @@ const COMMANDES = [
       ApplicationIntegrationType.UserInstall,
     ])
     // Sans `BotDM`, la commande n'existe pas dans la conversation privee avec
-    // le bot — c'est pourtant la que tout se passe.
+    // le bot : c'est pourtant la que tout se passe.
     .setContexts([
       InteractionContextType.BotDM,
       InteractionContextType.PrivateChannel,

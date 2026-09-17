@@ -35,11 +35,11 @@ export const messageOffre = (
     .setTitle(offre.titre ?? "Offre sans titre")
     .setDescription(offre.raison ?? "Nouvelle offre reperee par ta veille.")
     .addFields(
-      { name: "Employeur", value: offre.employeur ?? "—", inline: true },
-      { name: "Lieu", value: offre.lieu ?? "—", inline: true },
+      { name: "Employeur", value: offre.employeur ?? "-", inline: true },
+      { name: "Lieu", value: offre.lieu ?? "-", inline: true },
       {
         name: "Score",
-        value: offre.score === null ? "—" : `${offre.score}/100`,
+        value: offre.score === null ? "-" : `${offre.score}/100`,
         inline: true,
       },
     )

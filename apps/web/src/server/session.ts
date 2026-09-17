@@ -38,7 +38,7 @@ export const utilisateurCourant = (): Effect.Effect<
     Effect.catchAll(() => Effect.succeed(Option.none<User>())),
   )
 
-/** Idem, mais echoue si personne n'est connecte — pour les actions protegees. */
+/** Idem, mais echoue si personne n'est connecte : pour les actions protegees. */
 export const exigerUtilisateur = (): Effect.Effect<
   User,
   NonAutorise,

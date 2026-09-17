@@ -3,7 +3,7 @@
  *
  * Deux boucles concurrentes : l'une annonce les nouvelles offres en message
  * prive, l'autre repond aux boutons et aux commandes. Si l'une s'arrete, le
- * process s'arrete — un bot a moitie vivant est pire qu'un bot mort, le
+ * process s'arrete : un bot a moitie vivant est pire qu'un bot mort, le
  * superviseur (Dokploy) le relancera.
  */
 import { NodeRuntime } from "@effect/platform-node"

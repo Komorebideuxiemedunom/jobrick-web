@@ -36,7 +36,7 @@ const erreurAuth = (message: string): Response =>
   redirection(`/?erreur=${encodeURIComponent(message)}`)
 
 // ---------------------------------------------------------------------------
-// GET /api/auth/discord — demarre la connexion
+// GET /api/auth/discord : demarre la connexion
 // ---------------------------------------------------------------------------
 const demarrerConnexion = (url: URL) =>
   Effect.gen(function* () {
@@ -51,7 +51,7 @@ const demarrerConnexion = (url: URL) =>
   })
 
 // ---------------------------------------------------------------------------
-// GET /api/auth/discord/callback — Discord nous renvoie ici
+// GET /api/auth/discord/callback : Discord nous renvoie ici
 // ---------------------------------------------------------------------------
 const terminerConnexion = (url: URL) =>
   Effect.gen(function* () {
@@ -70,7 +70,7 @@ const terminerConnexion = (url: URL) =>
     const states = yield* OAuthStates
     const enregistre = yield* states.consommer(state)
     if (Option.isNone(enregistre)) {
-      return erreurAuth("Lien de connexion expire — reessaie.")
+      return erreurAuth("Lien de connexion expire : reessaie.")
     }
 
     const profil = yield* profilDepuisCode(code)
@@ -110,7 +110,7 @@ const deconnexion = (request: Request) =>
   })
 
 // ---------------------------------------------------------------------------
-// GET /api/cv — renvoie le CV de l'utilisateur connecte
+// GET /api/cv : renvoie le CV de l'utilisateur connecte
 //
 // Le scan ATS tourne dans le navigateur : il lui faut le fichier, pas une
 // analyse faite ailleurs. Le contenu du CV ne quitte donc jamais le couple

@@ -29,7 +29,7 @@ const traiterBouton = (
 ) =>
   Effect.gen(function* () {
     const offres = yield* JobResults
-    // `customId` = "offre:<action>:<uuid>" — l'UUID est la fin, pas le 3e champ
+    // `customId` = "offre:<action>:<uuid>" : l'UUID est la fin, pas le 3e champ
     // si jamais un prefixe evolue.
     const separateur = customId.lastIndexOf(":")
     const prefixe = customId.slice(0, separateur)
@@ -38,10 +38,10 @@ const traiterBouton = (
     switch (prefixe) {
       case ACTION.garder:
         yield* offres.definirInteretParDiscord(discordId, id, true)
-        return yield* repondre(interaction, "Gardee 💜 — elle reste en haut de ta liste.")
+        return yield* repondre(interaction, "Gardee 💜 : elle reste en haut de ta liste.")
       case ACTION.ecarter:
         yield* offres.definirInteretParDiscord(discordId, id, false)
-        return yield* repondre(interaction, "Ecartee — je ne te la remontrerai pas.")
+        return yield* repondre(interaction, "Ecartee : je ne te la remontrerai pas.")
       case ACTION.postule:
         yield* offres.definirPostuleParDiscord(discordId, id)
         return yield* repondre(
@@ -62,11 +62,11 @@ const traiterCommande = (interaction: ChatInputCommandInteraction) =>
 
     const contenu =
       dernieres.length === 0
-        ? "Rien pour l'instant — la veille tourne deux fois par jour."
+        ? "Rien pour l'instant : la veille tourne deux fois par jour."
         : dernieres
             .map(
               (o) =>
-                `**${o.score ?? "–"}** · ${o.titre ?? "Sans titre"} — ` +
+                `**${o.score ?? "–"}** · ${o.titre ?? "Sans titre"} : ` +
                 `${o.employeur ?? "?"} (${o.lieu ?? "?"})` +
                 (o.url === null ? "" : `\n${o.url}`),
             )

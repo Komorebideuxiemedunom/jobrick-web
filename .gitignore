@@ -11,7 +11,7 @@ dist/
 apps/web/src/routeTree.gen.ts
 *.tsbuildinfo
 
-# Environnement — ne jamais committer : jetons Discord, mot de passe Postgres
+# Environnement : ne jamais committer : jetons Discord, mot de passe Postgres
 .env
 .env.*
 !.env.example
