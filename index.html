@@ -8,18 +8,26 @@
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link href="assets/css/style.css" rel="stylesheet">
 </head>
 <body class="landing">
 
-  <div class="landing-card">
+  <div class="shape-field" aria-hidden="true">
+    <svg class="shape shape--ring" data-shape style="--x:8%; --y:14%; --size:180px;" viewBox="0 0 263 263"><path d="M131.7 262.6C59.6 263.1.5 204.7 0 132.4-.5 60.1 57.8 1 130 .5c72.1-.5 131.2 57.9 131.7 130.2.5 72.3-57.8 131.5-130 132z" fill="currentColor"/><path d="M131.4 217.9c47.5-.3 85.9-39.3 85.6-86.9-.3-47.6-39.2-86.1-86.8-85.8-47.5.3-85.9 39.3-85.6 86.9.3 47.6 39.2 86.1 86.8 85.8z" fill="var(--shape-cutout)"/></svg>
+    <svg class="shape shape--triangle" data-shape style="--x:82%; --y:10%; --size:110px;" viewBox="0 0 132 67"><path d="M132.07 66.14 66.03 0 0 66.14h132.07Z" fill="currentColor"/></svg>
+    <svg class="shape shape--diamond" data-shape style="--x:88%; --y:62%; --size:130px;" viewBox="0 0 283 284"><path d="M142.9 283.5.9 143.2 141.1.9l142 140.4-140.2 142.2Z" fill="currentColor"/></svg>
+    <svg class="shape shape--square" data-shape style="--x:6%; --y:70%; --size:100px;" viewBox="0 0 200 200"><rect x="4" y="4" width="192" height="192" rx="22" fill="currentColor"/></svg>
+    <svg class="shape shape--ring shape--small" data-shape style="--x:48%; --y:88%; --size:70px;" viewBox="0 0 263 263"><path d="M131.7 262.6C59.6 263.1.5 204.7 0 132.4-.5 60.1 57.8 1 130 .5c72.1-.5 131.2 57.9 131.7 130.2.5 72.3-57.8 131.5-130 132z" fill="currentColor"/><path d="M131.4 217.9c47.5-.3 85.9-39.3 85.6-86.9-.3-47.6-39.2-86.1-86.8-85.8-47.5.3-85.9 39.3-85.6 86.9.3 47.6 39.2 86.1 86.8 85.8z" fill="var(--shape-cutout)"/></svg>
+  </div>
+
+  <div class="landing-card anim-hidden" data-anim>
     <div class="landing-logo">Jobrick</div>
-    <h1>Ta veille d'offres, pilotee par toi</h1>
+    <h1>Ta veille d'offres,<br>pilotée par toi.</h1>
     <p class="landing-sub">
-      Depose ton CV, pointe tes zones sur la carte, choisis comment etre
-      prevenu. Le reste tourne tout seul, deux fois par jour.
+      Dépose ton CV, pointe tes zones sur la carte, choisis comment être
+      prévenu. Le reste tourne tout seul, deux fois par jour.
     </p>
 
     <button id="btn-google" class="btn-google">
@@ -30,14 +38,17 @@
     <p id="auth-error" class="auth-error" hidden></p>
 
     <p class="landing-footnote">
-      Connexion Google uniquement pour l'instant. Tes donnees restent dans
+      Connexion Google uniquement pour l'instant. Tes données restent dans
       ton espace, visibles par toi seul.
     </p>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
   <script src="assets/js/config.js"></script>
   <script src="assets/js/supabase-client.js"></script>
+  <script src="assets/js/motion.js"></script>
   <script>
     (async () => {
       const { data: { session } } = await window.supabaseClient.auth.getSession();
