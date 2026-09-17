@@ -14,6 +14,7 @@
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @jobrick/db migrate",
+    "db:smoke": "pnpm --filter @jobrick/db smoke",
     "test": "node --experimental-strip-types --test 'tests/**/*.test.ts'"
   },
   "devDependencies": {
