@@ -1,10 +1,6 @@
 /** Erreurs metier partagees. Typees pour rester visibles dans les signatures Effect. */
 import { Data } from "effect"
 
-export class NotFound extends Data.TaggedError("NotFound")<{
-  readonly quoi: string
-}> {}
-
 export class NonAutorise extends Data.TaggedError("NonAutorise")<{
   readonly raison: string
 }> {}

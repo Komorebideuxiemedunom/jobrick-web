@@ -1,11 +1,11 @@
 /**
- * Carte des zones de recherche (Leaflet + fonds CARTO).
+ * Carte des zones de recherche (Leaflet).
  *
  * Leaflet manipule le DOM directement et ne sait pas vivre dans un rendu
  * serveur : la librairie est importee dynamiquement dans un effet, et React
  * ne possede que le conteneur vide.
  */
-import type { Circle, Map as LeafletMap, Marker, TileLayer } from "leaflet"
+import type { Circle, Map as LeafletMap, Marker } from "leaflet"
 import { useEffect, useRef, useState } from "react"
 import { localiser, type ZoneBrouillon } from "~/lib/zones.ts"
 
@@ -68,7 +68,6 @@ export function CarteZones({
 }: Props) {
   const conteneur = useRef<HTMLDivElement>(null)
   const carte = useRef<LeafletMap | null>(null)
-  const tuiles = useRef<TileLayer | null>(null)
   const couches = useRef(new Map<string, { marker: Marker; circle: Circle }>())
   // Leaflet est charge en asynchrone : sans ce drapeau, les effets de
   // synchronisation s'executeraient une fois, avant que la carte existe, et
@@ -97,10 +96,7 @@ export function CarteZones({
       ) // France
       L.control.zoom({ position: "topleft" }).addTo(map)
 
-      // Deux fonds dessines pour leur theme, plutot qu'un filtre CSS applique
-      // au fond clair : l'inversion virait au vert sale et rendait les
-      // libelles illisibles.
-      tuiles.current = L.tileLayer(URL_TUILES, {
+      L.tileLayer(URL_TUILES, {
         attribution: ATTRIBUTION,
         maxZoom: 19,
       }).addTo(map)
@@ -126,7 +122,6 @@ export function CarteZones({
       nettoyer = () => {
         map.remove()
         carte.current = null
-        tuiles.current = null
         couches.current.clear()
         setPret(false)
       }

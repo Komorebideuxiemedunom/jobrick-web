@@ -131,9 +131,8 @@
 }
 
 /*
- * Leaflet. Le fond de carte a son propre habillage clair ou sombre (CARTO),
- * donc rien a filtrer ici : on n'ajuste que le chrome, pour qu'il suive le
- * systeme de formes du reste de l'interface.
+ * Leaflet : on ajuste le chrome pour qu'il suive le systeme de formes du
+ * reste de l'interface, et on assombrit les tuiles en mode sombre.
  */
 .leaflet-container {
   @apply bg-muted font-sans;

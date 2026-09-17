@@ -72,6 +72,19 @@ grep -rl 'postgres\|DATABASE_URL' apps/web/dist/client/assets/*.js   # doit etre
 renvoie une `Response`. C'est necessaire pour le callback OAuth (Discord
 redirige le navigateur) et pour `/api/cv` (telechargement binaire).
 
+**Les DTO ne portent que ce que l'interface lit.** `src/server/dto.ts` aplatit
+les classes du domaine pour la serialisation. Un champ qu'aucun composant ne
+consomme n'a rien a y faire : il ne fait que grossir la charge utile de chaque
+chargement de page.
+
+**Pas de cache client.** Les donnees du dashboard arrivent par le loader de
+route (`chargerDashboard`), repartent par des server functions, et l'etat qui
+bouge au clic (offre vue, postulee, triee) est tenu en local dans le composant
+avant un `router.invalidate()`. Il n'y a pas de react-query : un `QueryClient`
+etait construit et pose en contexte de routeur sans qu'aucune query ne s'en
+serve, il a ete retire. Le remettre suppose de rebrancher le provider, pas
+seulement la dependance.
+
 **Le CV ne part jamais ailleurs.** Le scan ATS tourne dans le navigateur
 (pdf.js, mammoth), sur un fichier venu du disque ou de `/api/cv`. Ne pas
 deplacer cette analyse cote serveur ni vers un service tiers.

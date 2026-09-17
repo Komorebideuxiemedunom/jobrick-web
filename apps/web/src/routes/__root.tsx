@@ -1,10 +1,4 @@
-import type { QueryClient } from "@tanstack/react-query"
-import {
-  createRootRouteWithContext,
-  HeadContent,
-  Outlet,
-  Scripts,
-} from "@tanstack/react-router"
+import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 import appCss from "~/styles/app.css?url"
 
@@ -14,9 +8,7 @@ import appCss from "~/styles/app.css?url"
  */
 const SCRIPT_THEME = `(function(){try{var c="jobrick-theme";var s=null;try{s=localStorage.getItem(c)}catch(e){}var m=matchMedia("(prefers-color-scheme: dark)");var a=function(){var d=s==="sombre"||(s!=="clair"&&m.matches);document.documentElement.classList.toggle("dark",d)};a();if(s!=="clair"&&s!=="sombre"){m.addEventListener("change",a)}}catch(e){}})()`
 
-export const Route = createRootRouteWithContext<{
-  readonly queryClient: QueryClient
-}>()({
+export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -61,5 +53,3 @@ function RootDocument({ children }: { readonly children: ReactNode }) {
     </html>
   )
 }
-
-export { Outlet }

@@ -18,7 +18,6 @@ const hacher = (jeton: string): string =>
   crypto.createHash("sha256").update(jeton).digest("hex")
 
 const decodeUser = Schema.decodeUnknown(User)
-const decodeUsers = Schema.decodeUnknown(Schema.Array(User))
 
 /** Ce que l'API Discord nous renvoie sur `/users/@me`. */
 export const DiscordProfile = Schema.Struct({
@@ -62,15 +61,6 @@ export class Users extends Effect.Service<Users>()("db/Users", {
             `
             return user
           }),
-        ),
-
-      byId: (id: UserId) =>
-        sql`
-          select id, discord_id, username, global_name, avatar, email, created_at
-          from users where id = ${id}
-        `.pipe(
-          Effect.flatMap(decodeUsers),
-          Effect.map((rows) => Option.fromNullable(rows[0])),
         ),
     }
   }),
@@ -137,9 +127,6 @@ export class Sessions extends Effect.Service<Sessions>()("db/Sessions", {
 
       invalider: (jeton: string) =>
         sql`delete from sessions where id = ${hacher(jeton)}`.pipe(Effect.asVoid),
-
-      purgerExpirees: () =>
-        sql`delete from sessions where expires_at <= now()`.pipe(Effect.asVoid),
     }
   }),
 }) {}

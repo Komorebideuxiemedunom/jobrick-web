@@ -12,16 +12,6 @@ import { Effect, Option } from "effect"
 
 export const NOM_COOKIE = "jobrick_session"
 
-/** Attributs communs au cookie de session, poses et effaces a l'identique. */
-export const optionsCookie = (secure: boolean) => ({
-  httpOnly: true,
-  secure,
-  // `lax` et non `strict` : le retour de Discord est une navigation
-  // cross-site, un cookie `strict` ne serait pas renvoye sur ce hop.
-  sameSite: "lax" as const,
-  path: "/",
-})
-
 /** L'utilisateur connecte, ou `None` si le cookie est absent/perime. */
 export const utilisateurCourant = (): Effect.Effect<
   Option.Option<User>,

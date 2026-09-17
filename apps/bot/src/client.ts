@@ -76,7 +76,7 @@ export class DiscordClient extends Effect.Service<DiscordClient>()(
         })
       })
 
-      return { client, envoyerDm, interactions }
+      return { envoyerDm, interactions }
     }),
   },
 ) {}

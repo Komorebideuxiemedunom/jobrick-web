@@ -4,7 +4,7 @@ import { Button } from "~/components/ui/button.tsx"
 
 export type Theme = "clair" | "sombre" | "systeme"
 
-export const CLE_THEME = "jobrick-theme"
+const CLE_THEME = "jobrick-theme"
 
 const SUIVANT: Record<Theme, Theme> = {
   systeme: "clair",

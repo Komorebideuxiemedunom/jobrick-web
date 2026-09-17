@@ -7,17 +7,14 @@
  */
 export interface UserDto {
   readonly id: string
-  readonly discordId: string
   readonly displayName: string
   readonly avatarUrl: string
-  readonly email: string | null
 }
 
 export interface ProfileDto {
   readonly jobKeywords: string
   readonly notifyDm: boolean
   readonly cvFilename: string | null
-  readonly cvUploadedAt: Date | null
 }
 
 export interface ZoneDto {

@@ -26,17 +26,14 @@ const EXTENSIONS_CV = [".pdf", ".doc", ".docx"]
 
 const versUserDto = (u: User): UserDto => ({
   id: u.id,
-  discordId: u.discordId,
   displayName: u.displayName,
   avatarUrl: u.avatarUrl,
-  email: u.email,
 })
 
 const versProfileDto = (p: Profile): ProfileDto => ({
   jobKeywords: p.jobKeywords,
   notifyDm: p.notifyDm,
   cvFilename: p.cvFilename,
-  cvUploadedAt: p.cvUploadedAt,
 })
 
 const versZoneDto = (z: Zone): ZoneDto => ({
