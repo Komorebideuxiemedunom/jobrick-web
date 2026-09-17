@@ -99,7 +99,7 @@
     const marker = L.marker([zone.lat, zone.lng], { draggable: true }).addTo(map);
     const circle = L.circle([zone.lat, zone.lng], {
       radius: zone.rayon_km * 1000,
-      color: "#4F46E5",
+      color: "#8C4A94",
       fillOpacity: 0.08,
     }).addTo(map);
 
