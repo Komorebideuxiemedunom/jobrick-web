@@ -1,6 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { BellIcon, FileTextIcon, MapPinIcon, TriangleAlertIcon } from "lucide-react"
 import { LogoDiscord } from "~/components/icones.tsx"
+import { Logo } from "~/components/Logo.tsx"
+import { BasculeTheme } from "~/components/BasculeTheme.tsx"
 import { Alert, AlertDescription } from "~/components/ui/alert.tsx"
 import { buttonVariants } from "~/components/ui/button.tsx"
 import { moi } from "~/server/fn.ts"
@@ -15,85 +17,94 @@ export const Route = createFileRoute("/")({
   component: Accueil,
 })
 
-const ETAPES = [
-  {
-    Icone: FileTextIcon,
-    titre: "Ton CV pilote tout",
-    texte: "Depose-le une fois : il sert a noter chaque offre selon ton profil.",
-  },
-  {
-    Icone: MapPinIcon,
-    titre: "Tes zones, sur la carte",
-    texte: "Pointe les villes qui t'interessent, avec un rayon a toi.",
-  },
-  {
-    Icone: BellIcon,
-    titre: "Le bot te previent",
-    texte: "Un message prive des qu'une offre vaut le coup. Rien de public.",
-  },
+const ARGUMENTS = [
+  { Icone: FileTextIcon, texte: "Ton CV note chaque offre à ta place." },
+  { Icone: MapPinIcon, texte: "Tes villes, avec le rayon que tu choisis." },
+  { Icone: BellIcon, texte: "Le bot t’écrit en privé, deux fois par jour." },
 ] as const
 
 function Accueil() {
   const { erreur } = Route.useSearch()
 
   return (
-    <div className="min-h-svh">
-      <header className="border-b">
-        <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-          <span className="font-semibold tracking-tight">Jobrick</span>
-          <span className="text-muted-foreground text-sm">Connexion Discord</span>
-        </nav>
-      </header>
+    /* Deux volets a parts egales : la promesse a gauche sur lavande, l'action
+       a droite sur le fond de page. En dessous de lg, ils s'empilent. */
+    <div className="grid min-h-svh lg:grid-cols-2">
+      <section className="bg-secondary flex flex-col justify-between gap-12 px-8 py-10 sm:px-14">
+        <Logo taille="lg" />
 
-      <main className="mx-auto max-w-5xl px-6">
-        <section className="flex flex-col items-center gap-6 py-20 text-center sm:py-28">
-          <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Ta veille d&apos;offres, pilotee par toi.
+        <div className="flex max-w-lg flex-col gap-6">
+          <MapPinIcon className="text-primary size-7" />
+          {/* Pas de `text-balance` ici : la coupure est imposee, les deux
+              phrases doivent tomber l'une sous l'autre. */}
+          <h1 className="text-4xl leading-[1.1] sm:text-5xl">
+            Ton prochain poste.
+            <br />
+            À ta portée.
           </h1>
-          <p className="text-muted-foreground max-w-xl text-base text-pretty sm:text-lg">
-            Depose ton CV, pointe tes zones sur la carte. Le bot Jobrick t&apos;envoie
-            les bonnes offres en message prive, deux fois par jour.
+          <p className="text-muted-foreground max-w-sm text-pretty">
+            Dépose ton CV, pointe tes villes sur la carte. Jobrick surveille
+            pour toi et ne te dérange que quand ça vaut le coup.
           </p>
 
-          {/* Un lien et non un bouton : c'est une navigation vers Discord, qui
-              doit marcher meme si le JavaScript n'a pas encore pris la main. */}
-          <a
-            href="/api/auth/discord"
-            className={buttonVariants({ variant: "discord", size: "xl", className: "mt-2" })}
-          >
+          <ul className="mt-2 flex flex-col gap-3">
+            {ARGUMENTS.map(({ Icone, texte }) => (
+              <li key={texte} className="flex items-center gap-3 text-sm font-medium">
+                <span className="bg-card text-primary flex size-8 shrink-0 items-center justify-center rounded-[10px]">
+                  <Icone className="size-4" />
+                </span>
+                {texte}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="text-muted-foreground text-xs">
+          Tes données restent dans ton espace, visibles de toi seul.
+        </p>
+      </section>
+
+      <section className="relative flex items-center justify-center px-8 py-16 sm:px-14">
+        <div className="absolute top-6 right-6">
+          <BasculeTheme />
+        </div>
+
+        <div className="flex w-full max-w-sm flex-col gap-6">
+          <span className="bg-secondary text-primary flex size-11 items-center justify-center rounded-xl">
             <LogoDiscord className="size-5" />
-            Continuer avec Discord
-          </a>
+          </span>
+
+          <div className="flex flex-col gap-2">
+            <h2 className="text-2xl">Heureux de te retrouver</h2>
+            <p className="text-muted-foreground text-sm text-pretty">
+              Connecte-toi avec Discord pour retrouver tes zones de recherche.
+              C’est aussi par là que le bot t’écrira.
+            </p>
+          </div>
 
           {erreur !== undefined && (
-            <Alert variant="destructive" className="max-w-md text-left">
+            <Alert variant="destructive">
               <TriangleAlertIcon />
               <AlertDescription>{erreur}</AlertDescription>
             </Alert>
           )}
 
-          <p className="text-muted-foreground max-w-md text-xs">
-            On ne lit rien de tes serveurs : juste ton pseudo, de quoi
-            t&apos;envoyer un message prive.
+          {/* Un lien et non un bouton : c'est une navigation vers Discord, qui
+              doit marcher meme si le JavaScript n'a pas encore pris la main. */}
+          <a
+            href="/api/auth/discord"
+            className={buttonVariants({ size: "lg", className: "w-full" })}
+          >
+            <LogoDiscord className="size-4" />
+            Continuer avec Discord
+          </a>
+
+          <p className="text-muted-foreground text-center text-xs text-pretty">
+            Aucun mot de passe à retenir. On ne lit rien de tes serveurs : juste
+            ton pseudo, de quoi t’envoyer un message privé.
           </p>
-        </section>
-
-        <section className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
-          {ETAPES.map(({ Icone, titre, texte }) => (
-            <div key={titre} className="bg-background flex flex-col gap-3 p-6">
-              <Icone className="text-muted-foreground size-5" />
-              <h2 className="font-medium">{titre}</h2>
-              <p className="text-muted-foreground text-sm text-pretty">{texte}</p>
-            </div>
-          ))}
-        </section>
-
-        <p className="text-muted-foreground py-16 text-center text-sm text-pretty">
-          Trouver les bonnes offres prend des heures chaque semaine. Avec
-          Jobrick, ta veille tourne seule, matin et soir, et ne te montre que ce
-          qui vaut vraiment le detour.
-        </p>
-      </main>
+        </div>
+      </section>
     </div>
   )
 }
