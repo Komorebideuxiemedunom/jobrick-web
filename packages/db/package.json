@@ -1,0 +1,23 @@
+{
+  "name": "@jobrick/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "migrate": "node --env-file-if-exists=../../.env --experimental-strip-types src/migrate.ts",
+    "smoke": "node --env-file-if-exists=../../.env --experimental-strip-types src/smoke.ts"
+  },
+  "dependencies": {
+    "@jobrick/core": "workspace:*",
+    "@effect/experimental": "0.61.1",
+    "@effect/platform": "0.97.2",
+    "@effect/platform-node": "0.108.2",
+    "@effect/sql": "0.52.1",
+    "@effect/sql-pg": "0.53.0",
+    "effect": "3.22.2"
+  }
+}
