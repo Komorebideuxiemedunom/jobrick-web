@@ -31,6 +31,9 @@
     document.getElementById("notify-discord").checked = profile.notify_discord ?? false;
     document.getElementById("discord-webhook").value = profile.discord_webhook_url || "";
     document.getElementById("discord-webhook").hidden = !profile.notify_discord;
+    document.getElementById("discord-user-id").value = profile.discord_user_id || "";
+    document.getElementById("discord-user-id").hidden = !profile.notify_discord;
+    document.getElementById("discord-user-id-hint").hidden = !profile.notify_discord;
     if (profile.cv_filename) {
       showCvFilled(profile.cv_filename);
     }
@@ -38,6 +41,8 @@
 
   document.getElementById("notify-discord").addEventListener("change", (e) => {
     document.getElementById("discord-webhook").hidden = !e.target.checked;
+    document.getElementById("discord-user-id").hidden = !e.target.checked;
+    document.getElementById("discord-user-id-hint").hidden = !e.target.checked;
     updateOnboarding();
   });
   document.getElementById("notify-email").addEventListener("change", updateOnboarding);
@@ -321,6 +326,16 @@
     btnSave.classList.add("is-loading");
     btnSaveLabel.innerHTML = `<span class="spinner"></span><span class="btn-label-text">Enregistrement…</span>`;
 
+    const discordUserId = document.getElementById("discord-user-id").value.trim();
+    if (discordUserId && !/^\d{15,25}$/.test(discordUserId)) {
+      saveStatus.textContent = "ID Discord invalide — ce sont uniquement des chiffres (ex. 123456789012345678).";
+      saveStatus.className = "field-status field-status-error";
+      btnSave.classList.remove("is-loading");
+      btnSaveLabel.innerHTML = `<span class="btn-label-text">Enregistrer</span>`;
+      btnSave.disabled = false;
+      return;
+    }
+
     try {
       // 1. CV, si un nouveau fichier a ete depose
       let cvPath = profile?.cv_path;
@@ -341,6 +356,7 @@
         notify_email: document.getElementById("notify-email").checked,
         notify_discord: document.getElementById("notify-discord").checked,
         discord_webhook_url: document.getElementById("discord-webhook").value || null,
+        discord_user_id: document.getElementById("discord-user-id").value.trim() || null,
         cv_path: cvPath,
         cv_filename: cvFilename,
         cv_uploaded_at: pendingCvFile ? new Date().toISOString() : profile?.cv_uploaded_at,

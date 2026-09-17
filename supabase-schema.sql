@@ -13,6 +13,7 @@ create table if not exists profiles (
   notify_email boolean default true,
   notify_discord boolean default false,
   discord_webhook_url text,
+  discord_user_id text,            -- pour @-mentionner : evite le spam si le webhook est partage
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

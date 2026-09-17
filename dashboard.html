@@ -147,6 +147,13 @@
         <input type="checkbox" id="notify-discord">
       </label>
       <input type="url" id="discord-webhook" placeholder="https://discord.com/api/webhooks/…" hidden>
+      <input type="text" id="discord-user-id" placeholder="Ton ID Discord (pour etre @-mentionne, pas juste notifie)" hidden>
+      <p class="field-status" id="discord-user-id-hint" hidden>
+        Optionnel mais conseille si le webhook est partage avec quelqu'un
+        d'autre : sans ca, tout le monde voit toutes les notifs. Pour le
+        trouver — Discord : Reglages → Avance → active le Mode developpeur,
+        puis clic droit sur ton profil → Copier l'identifiant.
+      </p>
 
       <label class="switch-row switch-row-static">
         <span>
