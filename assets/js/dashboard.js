@@ -194,10 +194,17 @@
   // ------------------------------------------------------------------
   // Enregistrer
   // ------------------------------------------------------------------
-  document.getElementById("btn-save").addEventListener("click", async () => {
+  const btnSave = document.getElementById("btn-save");
+  const btnSaveLabel = btnSave.querySelector(".btn-label");
+
+  btnSave.addEventListener("click", async () => {
     const saveStatus = document.getElementById("save-status");
-    saveStatus.textContent = "Enregistrement…";
+    saveStatus.textContent = "";
     saveStatus.className = "field-status";
+    btnSave.disabled = true;
+    btnSave.classList.remove("is-success");
+    btnSave.classList.add("is-loading");
+    btnSaveLabel.innerHTML = `<span class="spinner"></span><span class="btn-label-text">Enregistrement…</span>`;
 
     try {
       // 1. CV, si un nouveau fichier a ete depose
@@ -241,18 +248,109 @@
       }
 
       pendingCvFile = null;
-      saveStatus.textContent = "Enregistre ✓";
-      saveStatus.className = "field-status field-status-ok";
+      saveStatus.textContent = "";
+      btnSave.classList.remove("is-loading");
+      btnSave.classList.add("is-success");
+      btnSaveLabel.innerHTML = `<span class="check">✓</span><span class="btn-label-text">Enregistre</span>`;
+      setTimeout(() => {
+        btnSave.classList.remove("is-success");
+        btnSaveLabel.innerHTML = `<span class="btn-label-text">Enregistrer</span>`;
+        btnSave.disabled = false;
+      }, 1800);
     } catch (err) {
       console.error(err);
       saveStatus.textContent = "Erreur : " + err.message;
       saveStatus.className = "field-status field-status-error";
+      btnSave.classList.remove("is-loading");
+      btnSaveLabel.innerHTML = `<span class="btn-label-text">Enregistrer</span>`;
+      btnSave.disabled = false;
     }
   });
 
   // ------------------------------------------------------------------
-  // Resultats
+  // Resultats : skeleton, tri, filtre, marquage "vu", export CSV
   // ------------------------------------------------------------------
+  const resultsContainer = document.getElementById("results-list");
+  const sortSelect = document.getElementById("results-sort");
+  const hideSeenCheckbox = document.getElementById("results-hide-seen");
+  const exportBtn = document.getElementById("btn-export");
+  let allResults = [];
+
+  resultsContainer.innerHTML = Array.from({ length: 3 }).map(() => `
+    <div class="skeleton-item">
+      <div class="skeleton-block skeleton-score"></div>
+      <div class="skeleton-lines">
+        <div class="skeleton-block skeleton-line skeleton-line--title"></div>
+        <div class="skeleton-block skeleton-line skeleton-line--meta"></div>
+      </div>
+    </div>
+  `).join("");
+
+  function renderResults() {
+    let list = allResults.slice();
+    if (hideSeenCheckbox.checked) list = list.filter((r) => !r.vu);
+    if (sortSelect.value === "score") {
+      list.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+    } else {
+      list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+
+    if (!list.length) {
+      resultsContainer.innerHTML = allResults.length
+        ? `<p class="empty-state">Rien a afficher avec ce filtre.</p>`
+        : `<p class="empty-state">Rien pour l'instant — la veille tourne deux fois par jour, reviens un peu plus tard.</p>`;
+      return;
+    }
+
+    resultsContainer.innerHTML = list.map((r) => `
+      <a class="result-item ${r.vu ? "" : "is-new"}" data-id="${r.id}" href="${r.url}" target="_blank" rel="noopener noreferrer">
+        <div class="result-score">${r.score ?? "–"}</div>
+        <div class="result-body">
+          <div class="result-title-row">
+            <div class="result-title">${escapeHtml(r.titre || "Sans titre")}</div>
+            ${r.vu ? "" : `<span class="result-new-badge">Nouveau</span>`}
+          </div>
+          <div class="result-meta">${escapeHtml(r.employeur || "")} · ${escapeHtml(r.lieu || "")}</div>
+          ${r.raison ? `<div class="result-reason">${escapeHtml(r.raison)}</div>` : ""}
+        </div>
+      </a>
+    `).join("");
+
+    resultsContainer.querySelectorAll(".result-item").forEach((el) => {
+      el.addEventListener("click", () => markAsSeen(el.dataset.id), { once: true });
+    });
+  }
+
+  async function markAsSeen(id) {
+    const item = allResults.find((r) => r.id === id);
+    if (!item || item.vu) return;
+    item.vu = true;
+    const { error } = await supa.from("job_results").update({ vu: true }).eq("id", id);
+    if (error) console.error("marquage vu:", error);
+  }
+
+  sortSelect.addEventListener("change", renderResults);
+  hideSeenCheckbox.addEventListener("change", renderResults);
+
+  exportBtn.addEventListener("click", () => {
+    if (!allResults.length) return;
+    const header = ["Titre", "Employeur", "Lieu", "Score", "Raison", "URL", "Vu", "Date"];
+    const rows = allResults.map((r) => [
+      r.titre || "", r.employeur || "", r.lieu || "", r.score ?? "",
+      r.raison || "", r.url || "", r.vu ? "oui" : "non", r.created_at || "",
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "jobrick-offres.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
   {
     const { data, error } = await supa
       .from("job_results")
@@ -261,24 +359,10 @@
       .order("created_at", { ascending: false })
       .limit(30);
 
-    const container = document.getElementById("results-list");
-    if (error) {
-      console.error("resultats:", error);
-    }
-    if (!data || !data.length) {
-      container.innerHTML = `<p class="empty-state">Rien pour l'instant — la veille tourne deux fois par jour, reviens un peu plus tard.</p>`;
-    } else {
-      container.innerHTML = data.map((r) => `
-        <a class="result-item" href="${r.url}" target="_blank" rel="noopener noreferrer">
-          <div class="result-score">${r.score ?? "–"}</div>
-          <div class="result-body">
-            <div class="result-title">${escapeHtml(r.titre || "Sans titre")}</div>
-            <div class="result-meta">${escapeHtml(r.employeur || "")} · ${escapeHtml(r.lieu || "")}</div>
-            ${r.raison ? `<div class="result-reason">${escapeHtml(r.raison)}</div>` : ""}
-          </div>
-        </a>
-      `).join("");
-    }
+    if (error) console.error("resultats:", error);
+    allResults = data || [];
+    exportBtn.disabled = !allResults.length;
+    renderResults();
   }
 
   function escapeHtml(s) {

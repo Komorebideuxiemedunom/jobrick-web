@@ -98,17 +98,41 @@
     </section>
 
     <div class="save-bar">
-      <button id="btn-save" class="btn-primary">Enregistrer</button>
+      <button id="btn-save" class="btn-primary">
+        <span class="btn-label"><span class="btn-label-text">Enregistrer</span></span>
+      </button>
       <span id="save-status" class="field-status"></span>
     </div>
 
     <!-- Resultats -->
     <section class="card anim-hidden" data-anim id="section-results">
       <h2>Dernieres offres trouvees</h2>
+
+      <div class="results-toolbar">
+        <div class="results-filters">
+          <select id="results-sort">
+            <option value="date">Trier par date</option>
+            <option value="score">Trier par score</option>
+          </select>
+          <label class="results-toggle">
+            <input type="checkbox" id="results-hide-seen">
+            Masquer les offres vues
+          </label>
+        </div>
+        <button id="btn-export" class="btn-export" disabled>Exporter en CSV</button>
+      </div>
+
       <div id="results-list"></div>
     </section>
 
   </main>
+
+  <footer class="dash-footer">
+    La veille tourne <strong>deux fois par jour</strong>. Chaque offre est notee
+    par une IA selon ton CV et tes preferences, puis tu es prevenu par les
+    canaux choisis ci-dessus — les resultats restent aussi consultables ici
+    a tout moment.
+  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

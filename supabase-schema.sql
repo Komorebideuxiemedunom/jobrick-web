@@ -58,6 +58,11 @@ create policy "zones_self" on zones
 create policy "job_results_select_self" on job_results
   for select using (auth.uid() = user_id);
 
+-- Le bot (service_role) ecrit les offres ; l'utilisateur ne peut que les
+-- marquer comme vues depuis le dashboard, jamais en creer/supprimer lui-meme.
+create policy "job_results_update_self" on job_results
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- Cree automatiquement une ligne 'profiles' a la premiere connexion
 create or replace function public.handle_new_user()
 returns trigger as $$
