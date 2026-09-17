@@ -1,0 +1,22 @@
+{
+  "name": "@jobrick/bot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --experimental-strip-types --watch src/main.ts",
+    "start": "node --experimental-strip-types src/main.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@jobrick/core": "workspace:*",
+    "@jobrick/db": "workspace:*",
+    "@effect/platform": "0.97.2",
+    "@effect/platform-node": "0.108.2",
+    "discord.js": "14.27.0",
+    "effect": "3.22.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.3"
+  }
+}
