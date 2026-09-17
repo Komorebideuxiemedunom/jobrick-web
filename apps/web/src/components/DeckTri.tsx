@@ -6,7 +6,6 @@ import { HeartIcon, XIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "~/lib/utils.ts"
 import type { OffreDto } from "~/server/dto.ts"
-import { Badge } from "~/components/ui/badge.tsx"
 import { Button } from "~/components/ui/button.tsx"
 
 /** Distance a partir de laquelle un glisser vaut decision. */
@@ -33,8 +32,8 @@ export function DeckTri({
 
   if (courante === undefined) {
     return (
-      <div className="text-muted-foreground flex min-h-64 items-center justify-center rounded-lg border border-dashed text-sm text-pretty">
-        Tout est trie ! Reviens plus tard pour de nouvelles offres.
+      <div className="text-muted-foreground flex min-h-64 items-center justify-center rounded-2xl border border-dashed text-sm text-pretty">
+        Tout est trié ! Reviens plus tard pour de nouvelles offres.
       </div>
     )
   }
@@ -61,7 +60,7 @@ export function DeckTri({
     <div className="flex flex-col items-center gap-6 py-2">
       <div className="flex w-full max-w-md justify-center">
         <div
-          className="bg-card relative w-full cursor-grab touch-none rounded-xl border p-6 shadow-sm select-none active:cursor-grabbing"
+          className="bg-card relative w-full cursor-grab touch-none rounded-2xl border p-6 select-none active:cursor-grabbing"
           style={{
             transform,
             opacity: partante !== null ? 0 : 1,
@@ -95,9 +94,9 @@ export function DeckTri({
           </span>
 
           <div className="flex flex-col gap-3 pt-10">
-            <Badge variant="secondary" className="w-fit tabular-nums">
+            <span className="bg-secondary text-primary flex size-12 items-center justify-center rounded-xl text-base font-extrabold tabular-nums">
               {courante.score ?? "–"}
-            </Badge>
+            </span>
             <h3 className="text-lg font-medium text-pretty">
               {courante.titre ?? "Sans titre"}
             </h3>
@@ -114,23 +113,23 @@ export function DeckTri({
       <div className="flex items-center gap-4">
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="icon"
           className={cn("size-12 rounded-full", "hover:text-destructive")}
-          title="Pas interesse"
+          title="Pas intéressé"
           onClick={() => valider(false)}
         >
           <XIcon className="size-5" />
         </Button>
         <span className="text-muted-foreground text-xs tabular-nums">
-          {offres.length} a trier
+          {offres.length} à trier
         </span>
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="icon"
           className={cn("size-12 rounded-full", "hover:text-success")}
-          title="Interessant"
+          title="Intéressant"
           onClick={() => valider(true)}
         >
           <HeartIcon className="size-5" />

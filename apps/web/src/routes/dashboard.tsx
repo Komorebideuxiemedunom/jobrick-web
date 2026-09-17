@@ -2,17 +2,14 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import {
   CheckIcon,
   Loader2Icon,
-  LogOutIcon,
-  MapPinIcon,
   MessageSquareIcon,
-  TrashIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { CarteCv } from "~/components/CarteCv.tsx"
 import { CarteResultats } from "~/components/CarteResultats.tsx"
-import { CarteZones } from "~/components/CarteZones.tsx"
-import { Alert, AlertDescription } from "~/components/ui/alert.tsx"
-import { Avatar } from "~/components/ui/avatar.tsx"
+import { PanneauZones } from "~/components/PanneauZones.tsx"
+import { Logo } from "~/components/Logo.tsx"
+import { MenuProfil } from "~/components/MenuProfil.tsx"
 import { Button } from "~/components/ui/button.tsx"
 import {
   Card,
@@ -21,9 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card.tsx"
-import { Input } from "~/components/ui/input.tsx"
 import { Label } from "~/components/ui/label.tsx"
-import { Progress } from "~/components/ui/progress.tsx"
 import { Switch } from "~/components/ui/switch.tsx"
 import { Textarea } from "~/components/ui/textarea.tsx"
 import { cn } from "~/lib/utils.ts"
@@ -48,13 +43,6 @@ export const Route = createFileRoute("/dashboard")({
 })
 
 type EtatSauvegarde = "repos" | "encours" | "ok" | "erreur"
-
-const ANCRES = [
-  ["section-cv", "CV"],
-  ["section-zones", "Zones"],
-  ["section-prefs", "Prefs"],
-  ["section-results", "Offres"],
-] as const
 
 function Dashboard() {
   const donnees = Route.useLoaderData()
@@ -85,10 +73,10 @@ function Dashboard() {
 
   const etapes = useMemo(
     () => [
-      { label: "CV ajoute", fait: cvEnAttente !== null || cvEnregistre !== null },
-      { label: "Zone de recherche ajoutee", fait: zones.length > 0 },
-      { label: "Mots-cles renseignes", fait: motsCles.trim().length > 0 },
-      { label: "Messages prives actives", fait: notifyDm },
+      { label: "CV ajouté", fait: cvEnAttente !== null || cvEnregistre !== null },
+      { label: "Zone de recherche active", fait: zones.some((z) => z.active) },
+      { label: "Mots-clés renseignés", fait: motsCles.trim().length > 0 },
+      { label: "Messages privés activés", fait: notifyDm },
     ],
     [cvEnAttente, cvEnregistre, zones.length, motsCles, notifyDm],
   )
@@ -103,7 +91,7 @@ function Dashboard() {
         valeur: gardees.filter((r) => r.vu && r.createdAt.getTime() >= semaine).length,
         label: "vues cette semaine",
       },
-      { valeur: gardees.filter((r) => r.postule).length, label: "en attente de reponse" },
+      { valeur: gardees.filter((r) => r.postule).length, label: "en attente de réponse" },
     ]
   }, [offres])
 
@@ -127,9 +115,11 @@ function Dashboard() {
           notifyDm,
           zones: zones.map((z) => ({
             label: z.label,
+            departement: z.departement,
             lat: z.lat,
             lng: z.lng,
             rayonKm: z.rayonKm,
+            active: z.active,
           })),
         },
       })
@@ -145,85 +135,108 @@ function Dashboard() {
 
   return (
     <div className="min-h-svh">
-      <header className="bg-background/80 sticky top-0 z-10 border-b backdrop-blur">
-        <nav className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-4 px-6">
-          <span className="font-semibold tracking-tight">Jobrick</span>
-
-          <div className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
-            {ANCRES.map(([id, libelle]) => (
-              <a
-                key={id}
-                href={`#${id}`}
-                className="hover:bg-accent hover:text-foreground rounded-md px-2.5 py-1.5 transition-colors"
-              >
-                {libelle}
-              </a>
-            ))}
+      {/* Barre pleine largeur : le contenu reste en colonne etroite pour la
+          lecture, mais une navbar centree sur 768px laisserait l'ecran vide
+          des deux cotes sur un poste de travail. */}
+      <header className="bg-card/80 sticky top-0 z-10 border-b backdrop-blur-sm">
+        <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-6 lg:px-10">
+          <div className="flex items-center gap-3">
+            <Logo />
+            <span className="bg-border hidden h-5 w-px sm:block" />
+            <span className="text-muted-foreground hidden text-sm font-medium sm:inline">
+              Mon espace de recherche
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Avatar
-              src={donnees.user.avatarUrl}
-              alt=""
-              fallback={donnees.user.displayName.slice(0, 2).toUpperCase()}
+          <div className="flex items-center">
+            <MenuProfil
+              displayName={donnees.user.displayName}
+              avatarUrl={donnees.user.avatarUrl}
             />
-            <span className="hidden text-sm font-medium sm:inline">
-              {donnees.user.displayName}
-            </span>
-            {/* Un formulaire POST : une deconnexion ne doit pas partir sur un
-                simple GET, qu'un prefetch declencherait. */}
-            <form method="post" action="/api/auth/logout">
-              <Button type="submit" variant="ghost" size="icon" title="Se deconnecter">
-                <LogOutIcon />
-              </Button>
-            </form>
           </div>
         </nav>
       </header>
 
-      <main className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8">
+      <main className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl">Ta veille</h1>
+            <p className="text-muted-foreground text-sm">
+              Ton CV, tes zones, et ce qu&apos;elles ont rapporté.
+            </p>
+          </div>
+        </div>
+
         {faites < etapes.length && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 Mise en route
-                <span className="text-muted-foreground text-sm font-normal tabular-nums">
+                <span className="text-muted-foreground text-sm font-semibold tabular-nums">
                   {faites}/{etapes.length}
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <Progress value={(faites / etapes.length) * 100} />
-              <ul className="flex flex-wrap gap-x-5 gap-y-2">
-                {etapes.map((e) => (
-                  <li
-                    key={e.label}
-                    className={cn(
-                      "flex items-center gap-1.5 text-sm",
-                      e.fait ? "text-foreground" : "text-muted-foreground",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex size-4 items-center justify-center rounded-full border",
-                        e.fait && "bg-success border-success text-success-foreground",
-                      )}
+            <CardContent>
+              {/* Une liste ordonnee, pas une grille de cases : les etapes se
+                  font dans cet ordre, et le trait qui les relie le dit. */}
+              <ol className="flex flex-col gap-0 sm:flex-row">
+                {etapes.map((e, i) => {
+                  const courante = !e.fait && etapes.slice(0, i).every((p) => p.fait)
+                  return (
+                    <li
+                      key={e.label}
+                      className="relative flex flex-1 items-center gap-3 pb-5 last:pb-0 sm:flex-col sm:items-start sm:gap-2 sm:pb-0"
                     >
-                      {e.fait && <CheckIcon className="size-3" />}
-                    </span>
-                    {e.label}
-                  </li>
-                ))}
-              </ul>
+                      {/* Le trait de liaison : vertical en colonne, horizontal
+                          des que les etapes s'alignent. */}
+                      {i < etapes.length - 1 && (
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "absolute left-[13px] top-7 h-[calc(100%-1.75rem)] w-0.5 sm:top-[13px] sm:left-7 sm:h-0.5 sm:w-[calc(100%-1.75rem)]",
+                            e.fait ? "bg-primary" : "bg-border",
+                          )}
+                        />
+                      )}
+                      <span
+                        className={cn(
+                          "relative z-1 flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold tabular-nums transition-colors",
+                          e.fait
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : courante
+                              ? "border-primary text-primary bg-card"
+                              : "border-border text-muted-foreground bg-card",
+                        )}
+                      >
+                        {e.fait ? <CheckIcon className="size-4" /> : i + 1}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-sm font-medium sm:pr-4",
+                          e.fait || courante ? "text-foreground" : "text-muted-foreground",
+                        )}
+                      >
+                        {e.label}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ol>
             </CardContent>
           </Card>
         )}
 
-        <div className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3">
           {stats.map((s) => (
-            <div key={s.label} className="bg-card flex flex-col gap-1 px-6 py-5">
-              <span className="text-2xl font-semibold tabular-nums">{s.valeur}</span>
-              <span className="text-muted-foreground text-sm">{s.label}</span>
+            <div
+              key={s.label}
+              className="bg-card flex flex-col gap-1 rounded-2xl border px-5 py-4"
+            >
+              <span className="text-primary text-3xl font-extrabold tracking-tight tabular-nums">
+                {s.valeur}
+              </span>
+              <span className="text-muted-foreground text-sm font-medium">{s.label}</span>
             </div>
           ))}
         </div>
@@ -235,96 +248,20 @@ function Dashboard() {
           onFichier={setCvEnAttente}
         />
 
-        <Card id="section-zones" className="scroll-mt-20">
-          <CardHeader>
-            <CardTitle>Zones de recherche</CardTitle>
-            <CardDescription>
-              Clique sur la carte pour ajouter un point de recherche.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <CarteZones
-              zones={zones}
-              onAjout={(z) => setZones((l) => [...l, z])}
-              onDeplacement={(cle, lat, lng) =>
-                setZones((l) => l.map((z) => (z.cle === cle ? { ...z, lat, lng } : z)))
-              }
-            />
-
-            {zones.length === 0 ? (
-              <p className="text-muted-foreground flex items-center gap-2 text-sm">
-                <MapPinIcon className="size-4" />
-                Aucune zone pour l&apos;instant.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {zones.map((z) => (
-                  <li key={z.cle} className="flex items-center gap-2">
-                    <Input
-                      value={z.label}
-                      placeholder="Nom du lieu"
-                      onChange={(e) =>
-                        setZones((l) =>
-                          l.map((x) => (x.cle === z.cle ? { ...x, label: e.target.value } : x)),
-                        )
-                      }
-                    />
-                    <div className="relative shrink-0">
-                      <Input
-                        type="number"
-                        min={1}
-                        max={200}
-                        value={z.rayonKm}
-                        className="w-24 pr-8 tabular-nums"
-                        onChange={(e) =>
-                          setZones((l) =>
-                            l.map((x) =>
-                              x.cle === z.cle
-                                ? {
-                                    ...x,
-                                    rayonKm: Math.min(
-                                      200,
-                                      Math.max(1, Number(e.target.value) || 25),
-                                    ),
-                                  }
-                                : x,
-                            ),
-                          )
-                        }
-                      />
-                      <span className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs">
-                        km
-                      </span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="shrink-0"
-                      title="Supprimer cette zone"
-                      onClick={() => setZones((l) => l.filter((x) => x.cle !== z.cle))}
-                    >
-                      <TrashIcon />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        <PanneauZones zones={zones} onChange={setZones} />
 
         <Card id="section-prefs" className="scroll-mt-20">
           <CardHeader>
             <CardTitle>Ce que tu cherches</CardTitle>
             <CardDescription>
-              Intitules de poste, mots-cles — texte libre, une idee par ligne.
+              Intitulés de poste, mots-clés : texte libre, une idée par ligne.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
               rows={4}
               value={motsCles}
-              placeholder={"Chef de projet numerique\nCharge de communication\nUX/UI designer"}
+              placeholder={"Chef de projet numérique\nChargé de communication\nUX/UI designer"}
               onChange={(e) => setMotsCles(e.target.value)}
             />
           </CardContent>
@@ -332,17 +269,17 @@ function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Comment te prevenir</CardTitle>
+            <CardTitle>Comment te prévenir</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <Label className="flex items-center justify-between gap-4">
               <span className="flex flex-col gap-0.5">
                 <span className="flex items-center gap-2">
                   <MessageSquareIcon className="size-4" />
-                  Message prive Discord
+                  Message privé Discord
                 </span>
                 <span className="text-muted-foreground text-sm font-normal">
-                  Le bot Jobrick t&apos;ecrit directement, en prive
+                  Le bot Jobrick t&apos;écrit directement, en privé
                 </span>
               </span>
               <Switch
@@ -351,22 +288,6 @@ function Dashboard() {
               />
             </Label>
 
-            <Alert variant="muted">
-              <AlertDescription>
-                <p className="text-pretty">
-                  <span className="text-foreground font-medium">
-                    Plus de webhook a configurer.
-                  </span>{" "}
-                  Depuis que la connexion passe par Discord, le bot connait deja
-                  ton identifiant : il t&apos;ecrit en prive, personne d&apos;autre
-                  ne voit tes offres.
-                </p>
-                <p className="text-pretty">
-                  Si tu ne recois rien, verifie que tu acceptes les messages
-                  prives des membres du serveur partage avec le bot.
-                </p>
-              </AlertDescription>
-            </Alert>
           </CardContent>
         </Card>
 
@@ -374,10 +295,15 @@ function Dashboard() {
           {erreur !== null && (
             <span className="text-destructive text-sm">Erreur : {erreur}</span>
           )}
-          <Button type="button" disabled={etat === "encours"} onClick={() => void enregistrer()}>
+          <Button
+            type="button"
+            size="lg"
+            disabled={etat === "encours"}
+            onClick={() => void enregistrer()}
+          >
             {etat === "encours" && <Loader2Icon className="animate-spin" />}
             {etat === "ok" && <CheckIcon />}
-            {etat === "encours" ? "Enregistrement…" : etat === "ok" ? "Enregistre" : "Enregistrer"}
+            {etat === "encours" ? "Enregistrement…" : etat === "ok" ? "Enregistré" : "Enregistrer"}
           </Button>
         </div>
 
@@ -399,8 +325,8 @@ function Dashboard() {
 
         <p className="text-muted-foreground py-4 text-center text-sm text-pretty">
           La veille tourne <span className="text-foreground font-medium">deux fois par jour</span>.
-          Chaque offre est notee par une IA selon ton CV et tes preferences, puis
-          le bot te previent en message prive.
+          Chaque offre est notée par une IA selon ton CV et tes préférences, puis
+          le bot te prévient en message privé.
         </p>
       </main>
     </div>

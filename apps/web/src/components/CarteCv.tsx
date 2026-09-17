@@ -48,7 +48,7 @@ export function CarteCv({ cvEnregistre, fichierEnAttente, motsCles, onFichier }:
   const traiter = (fichier: File) => {
     const nom = fichier.name.toLowerCase()
     if (!EXTENSIONS.some((ext) => nom.endsWith(ext))) {
-      setErreur("Format non reconnu — PDF, DOC ou DOCX uniquement.")
+      setErreur("Format non reconnu : PDF, DOC ou DOCX uniquement.")
       return
     }
     if (fichier.size > TAILLE_MAX) {
@@ -92,7 +92,7 @@ export function CarteCv({ cvEnregistre, fichierEnAttente, motsCles, onFichier }:
       <CardHeader>
         <CardTitle>Ton CV</CardTitle>
         <CardDescription>
-          Il pilote la veille : c&apos;est lui qui determine si une offre te correspond.
+          Il pilote la veille : c&apos;est lui qui détermine si une offre te correspond.
         </CardDescription>
       </CardHeader>
 
@@ -112,9 +112,9 @@ export function CarteCv({ cvEnregistre, fichierEnAttente, motsCles, onFichier }:
             if (f !== undefined) traiter(f)
           }}
           className={cn(
-            "flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-10 text-center transition-colors",
-            "hover:bg-accent/50 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none",
-            survol && "border-primary bg-accent",
+            "flex w-full cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-10 text-center transition-colors",
+            "hover:bg-secondary/50 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none",
+            survol && "border-primary bg-secondary",
           )}
         >
           <input
@@ -129,7 +129,7 @@ export function CarteCv({ cvEnregistre, fichierEnAttente, motsCles, onFichier }:
           />
           {aUnCv ? (
             <>
-              <FileTextIcon className="text-muted-foreground size-5" />
+              <FileTextIcon className="text-primary size-5" />
               <span className="flex items-center gap-2 text-sm font-medium">
                 {fichierEnAttente?.name ?? cvEnregistre}
                 {fichierEnAttente !== null && (
@@ -137,17 +137,17 @@ export function CarteCv({ cvEnregistre, fichierEnAttente, motsCles, onFichier }:
                 )}
               </span>
               <span className="text-muted-foreground text-xs">
-                Depose un autre fichier pour le remplacer
+                Dépose un autre fichier pour le remplacer
               </span>
             </>
           ) : (
             <>
-              <UploadIcon className="text-muted-foreground size-5" />
+              <UploadIcon className="text-primary size-5" />
               <span className="text-sm font-medium">
                 Glisse ton CV ici, ou clique pour choisir un fichier
               </span>
               <span className="text-muted-foreground text-xs">
-                PDF, DOC ou DOCX — 10 Mo max
+                PDF, DOC ou DOCX, 10 Mo max
               </span>
             </>
           )}
@@ -158,7 +158,7 @@ export function CarteCv({ cvEnregistre, fichierEnAttente, motsCles, onFichier }:
         <div className="flex items-center gap-3">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             disabled={!aUnCv || scanEnCours}
             onClick={() => void lancerScan()}
@@ -192,7 +192,7 @@ function PanneauAts({ resultat }: { readonly resultat: AtsResultat }) {
   if (resultat.score === null) {
     const premier = resultat.checks[0]
     return (
-      <div className="bg-muted/50 rounded-lg p-4">
+      <div className="bg-secondary/60 rounded-xl p-4">
         <p className="text-muted-foreground text-sm">
           {premier?.detail ?? premier?.label}
         </p>
@@ -201,9 +201,9 @@ function PanneauAts({ resultat }: { readonly resultat: AtsResultat }) {
   }
 
   return (
-    <div className="bg-muted/50 flex flex-col gap-4 rounded-lg p-4">
+    <div className="bg-secondary/60 flex flex-col gap-4 rounded-xl p-4">
       <div className="flex items-center gap-4">
-        <div className="text-3xl font-semibold tabular-nums">{resultat.score}</div>
+        <div className="text-primary text-4xl font-extrabold tracking-tight tabular-nums">{resultat.score}</div>
         <div className="flex flex-col gap-1">
           <Badge variant={VARIANTE_NIVEAU[resultat.niveau]} className="w-fit">
             {LIBELLE_NIVEAU[resultat.niveau]}
@@ -228,9 +228,9 @@ function PanneauAts({ resultat }: { readonly resultat: AtsResultat }) {
       </ul>
 
       <p className="text-muted-foreground text-xs text-pretty">
-        Analyse indicative, executee dans ton navigateur — aucun contenu du CV
-        n&apos;est envoye a un serveur externe. Elle ne garantit pas le passage
-        d&apos;un ATS reel, mais repere les blocages les plus frequents.
+        Analyse indicative, exécutée dans ton navigateur : aucun contenu du CV
+        n&apos;est envoyé à un serveur externe. Elle ne garantit pas le passage
+        d&apos;un ATS réel, mais repère les blocages les plus fréquents.
       </p>
     </div>
   )

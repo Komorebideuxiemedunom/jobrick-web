@@ -60,9 +60,18 @@ const exporterCsv = (offres: ReadonlyArray<OffreDto>): void => {
   URL.revokeObjectURL(url)
 }
 
-/** Le score colore le badge : vert au-dela de 75, ambre au-dela de 45. */
-const varianteScore = (score: number | null) =>
-  score === null ? "secondary" : score >= 75 ? "success" : score >= 45 ? "warning" : "secondary"
+/**
+ * Le score est un chiffre, pas une pastille de marque : il garde l'aplat
+ * lavande par defaut et ne prend une couleur de sens que lorsqu'il tranche.
+ */
+const classeScore = (score: number | null) =>
+  score === null
+    ? "bg-muted text-muted-foreground"
+    : score >= 75
+      ? "bg-success/12 text-success"
+      : score >= 45
+        ? "bg-warning/14 text-warning"
+        : "bg-muted text-muted-foreground"
 
 export function CarteResultats({ offres, onVue, onPostule, onInteret }: Props) {
   const [tri, setTri] = useState<Tri>("date")
@@ -91,12 +100,12 @@ export function CarteResultats({ offres, onVue, onPostule, onInteret }: Props) {
   return (
     <Card id="section-results" className="scroll-mt-20">
       <CardHeader>
-        <CardTitle>Dernieres offres trouvees</CardTitle>
+        <CardTitle>Dernières offres trouvées</CardTitle>
         <CardAction>
           <div className="flex items-center gap-2">
             <Button
               type="button"
-              variant={modeTri ? "default" : "outline"}
+              variant={modeTri ? "default" : "secondary"}
               size="sm"
               onClick={() => setModeTri((v) => !v)}
             >
@@ -108,7 +117,7 @@ export function CarteResultats({ offres, onVue, onPostule, onInteret }: Props) {
             </Button>
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               size="sm"
               disabled={offres.length === 0}
               onClick={() => exporterCsv(offres)}
@@ -142,8 +151,8 @@ export function CarteResultats({ offres, onVue, onPostule, onInteret }: Props) {
         ) : visibles.length === 0 ? (
           <p className="text-muted-foreground py-12 text-center text-sm text-pretty">
             {offres.length > 0
-              ? "Rien a afficher avec ce filtre."
-              : "Rien pour l'instant — la veille tourne deux fois par jour, reviens un peu plus tard."}
+              ? "Rien à afficher avec ce filtre."
+              : "Rien pour l'instant : la veille tourne deux fois par jour, reviens un peu plus tard."}
           </p>
         ) : (
           <div className="divide-border -mx-6 divide-y border-y">
@@ -176,11 +185,16 @@ function LigneOffre({
   const q = encodeURIComponent(offre.employeur ?? "")
 
   return (
-    <div className={cn("px-6 py-4 transition-colors", !offre.vu && "bg-accent/40")}>
+    <div className={cn("px-6 py-4 transition-colors", !offre.vu && "bg-secondary/45")}>
       <div className="flex items-start gap-4">
-        <Badge variant={varianteScore(offre.score)} className="mt-0.5 tabular-nums">
+        <span
+          className={cn(
+            "flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold tabular-nums",
+            classeScore(offre.score),
+          )}
+        >
           {offre.score ?? "–"}
-        </Badge>
+        </span>
 
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -194,7 +208,7 @@ function LigneOffre({
               {offre.titre ?? "Sans titre"}
               <ExternalLinkIcon className="text-muted-foreground size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
             </a>
-            {!offre.vu && <Badge variant="outline">Nouveau</Badge>}
+            {!offre.vu && <Badge variant="secondary">Nouveau</Badge>}
           </div>
 
           <p className="text-muted-foreground text-sm">
@@ -209,46 +223,46 @@ function LigneOffre({
             <Button
               type="button"
               size="sm"
-              variant={offre.postule ? "secondary" : "ghost"}
+              variant={offre.postule ? "default" : "secondary"}
               onClick={() => onPostule(offre.id, !offre.postule)}
             >
               <BriefcaseIcon />
-              {offre.postule ? "Postule" : "Marquer postule"}
+              {offre.postule ? "Postulé" : "Marquer postulé"}
             </Button>
             <Button
               type="button"
               size="sm"
-              variant="ghost"
+              variant="secondary"
               onClick={() => setReseauOuvert((v) => !v)}
             >
               <UsersIcon />
-              Reseautage
+              Réseautage
             </Button>
             {relanceConseillee(offre) && (
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
+                variant="secondary"
                 className="text-warning"
                 onClick={() => setRelanceOuverte((v) => !v)}
               >
                 <ClockIcon />
-                Relance conseillee (J+7)
+                Relance conseillée (J+7)
               </Button>
             )}
           </div>
 
           {relanceOuverte && (
-            <div className="bg-muted/50 mt-2 flex flex-col gap-2 rounded-lg p-3">
+            <div className="bg-secondary/60 mt-2 flex flex-col gap-2 rounded-xl p-3">
               <span className="text-muted-foreground text-xs">
-                Suggestion de message a copier :
+                Suggestion de message à copier :
               </span>
               <Textarea rows={3} readOnly value={messageRelance(offre)} className="bg-background" />
             </div>
           )}
 
           {reseauOuvert && (
-            <div className="bg-muted/50 mt-2 flex flex-col gap-1 rounded-lg p-3 text-sm">
+            <div className="bg-secondary/60 mt-2 flex flex-col gap-1 rounded-xl p-3 text-sm">
               {[
                 [`${q}%20CEO`, "Chercher le/la CEO sur LinkedIn"],
                 [`${q}%20RH%20recrutement`, "Chercher RH / recrutement sur LinkedIn"],
