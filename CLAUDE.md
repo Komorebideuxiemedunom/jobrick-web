@@ -29,7 +29,7 @@ pnpm db:smoke       # passage complet de la couche donnees, contre la vraie base
 pnpm dev            # site sur http://localhost:3000
 pnpm dev:bot        # bot (necessite un token Discord)
 pnpm typecheck      # tous les paquets
-pnpm test           # garde-fous du depot (typographie)
+pnpm test           # garde-fous du depot (typographie, commandes Discord)
 pnpm build          # tous les paquets
 ```
 
@@ -89,6 +89,12 @@ seulement la dependance.
 (pdf.js, mammoth), sur un fichier venu du disque ou de `/api/cv`. Ne pas
 deplacer cette analyse cote serveur ni vers un service tiers.
 
+**Integration continue.** `.github/workflows/ci.yml` rejoue sur chaque poussee
+ce que les regles ci-dessus demandent : typage, garde-fous, migrations et
+`db:smoke` contre un vrai Postgres, build, puis la verification que rien de
+serveur n'a fuite dans le bundle client. Une regle que la CI ne sait pas
+verifier finit toujours par etre oubliee.
+
 **Migrations.** Fichiers `.sql` numerotes dans `packages/db/src/migrations/`,
 joues dans l'ordre, une transaction chacun, jamais modifies retroactivement :
 on en ajoute un nouveau. Le conteneur web les joue au demarrage.
@@ -120,6 +126,15 @@ reapparait un.
 
 ## Pieges connus
 
+- **Les commandes slash vivent chez Discord, pas dans le depot.** Le bot les
+  publie au demarrage (`publierCommandes`) : modifier `commandes.ts` ne change
+  rien tant que le bot n'a pas redemarre, et en production cela veut dire
+  redeployer le conteneur `bot`. Une commande ajoutee n'apparait pas non plus
+  dans un client Discord deja ouvert : il garde sa liste en cache, il faut le
+  recharger. Discord annonce jusqu'a une heure de propagation pour une commande
+  globale toute neuve. Corollaire : un payload invalide ne casse ni le
+  typecheck ni le build, il fait echouer le demarrage du bot. C'est ce que
+  `tests/commandes.test.ts` verifie a la place.
 - Le bot tourne en `node --experimental-strip-types` : imports relatifs avec
   extension `.ts` obligatoire, et pas d'`enum` ni de `namespace`.
 - L'image Docker embarque tout `node_modules` (~630 Mo). Le serveur SSR garde

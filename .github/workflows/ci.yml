@@ -1,0 +1,75 @@
+# Integration continue : ce que le depot verifie a chaque poussee.
+#
+# L'ordre va du plus rapide au plus lent, pour que l'echec le plus probable
+# tombe en premier. La base de donnees est un vrai Postgres et non un double :
+# le SQL et le decodage des schemas sont precisement ce que `db:smoke` teste,
+# et un faux Postgres ne prouverait rien.
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: jobrick
+          POSTGRES_PASSWORD: jobrick
+          POSTGRES_DB: jobrick
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U jobrick -d jobrick"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # 5432 ici : le decalage a 5434 ne sert qu'a cohabiter sur une machine
+      # de developpement, ou un autre Postgres tourne souvent deja.
+      DATABASE_URL: postgres://jobrick:jobrick@localhost:5432/jobrick
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typage
+        run: pnpm typecheck
+
+      # Typographie, et validite des commandes slash : un payload refuse par
+      # Discord ne se verrait qu'au demarrage du bot, donc en production.
+      - name: Garde-fous du depot
+        run: pnpm test
+
+      - name: Migrations et couche donnees
+        run: |
+          pnpm db:migrate
+          pnpm db:smoke
+
+      - name: Build
+        run: pnpm build
+
+      # Regle du depot : le navigateur n'a aucun acces a Postgres. Un import
+      # statique mal place suffirait a faire passer le module serveur dans le
+      # bundle client, sans casser ni le typage ni le build.
+      - name: Rien de serveur dans le bundle client
+        run: |
+          if grep -rl 'postgres\|DATABASE_URL' apps/web/dist/client/assets/*.js; then
+            echo "Du code serveur a fuite dans le bundle client."
+            exit 1
+          fi
