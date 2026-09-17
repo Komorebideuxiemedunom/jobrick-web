@@ -2,7 +2,7 @@
  * Verification de bout en bout de la couche donnees, contre un vrai Postgres.
  *
  * Ce n'est pas une suite de tests unitaires : c'est un passage complet qui
- * exerce le SQL reel et le decodage des schemas — les deux endroits ou une
+ * exerce le SQL reel et le decodage des schemas : les deux endroits ou une
  * erreur ne se voit pas au typecheck. Lancer avec `pnpm db:smoke`.
  */
 import { NodeRuntime } from "@effect/platform-node"
@@ -98,13 +98,20 @@ const programme = Effect.gen(function* () {
 
   yield* Effect.log("Zones")
   yield* zones.remplacer(a.id, [
-    { label: "Valence", lat: 44.93, lng: 4.89, rayonKm: 25 },
-    { label: "Lyon", lat: 45.76, lng: 4.83, rayonKm: 40 },
+    { label: "Valence", departement: "26", lat: 44.93, lng: 4.89, rayonKm: 25, active: true },
+    { label: "Lyon", departement: "69", lat: 45.76, lng: 4.83, rayonKm: 40, active: false },
   ])
   const z1 = yield* zones.parUtilisateur(a.id)
   yield* verifier(z1.length === 2, "deux zones enregistrees")
   yield* verifier(z1.some((z) => z.label === "Lyon" && z.rayonKm === 40), "rayon conserve")
-  yield* zones.remplacer(a.id, [{ label: "Grenoble", lat: 45.19, lng: 5.72, rayonKm: 15 }])
+  yield* verifier(z1.some((z) => z.label === "Valence" && z.departement === "26"), "departement conserve")
+  yield* verifier(
+    z1.filter((z) => z.active).length === 1,
+    "une zone en pause reste enregistree mais marquee inactive",
+  )
+  yield* zones.remplacer(a.id, [
+    { label: "Grenoble", departement: "38", lat: 45.19, lng: 5.72, rayonKm: 15, active: true },
+  ])
   const z2 = yield* zones.parUtilisateur(a.id)
   yield* verifier(z2.length === 1 && z2[0]?.label === "Grenoble", "remplacement integral")
   yield* verifier(

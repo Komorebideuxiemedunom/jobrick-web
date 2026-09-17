@@ -94,7 +94,7 @@ export class Zones extends Effect.Service<Zones>()("db/Zones", {
     return {
       parUtilisateur: (userId: UserId) =>
         sql`
-          select id, user_id, label, lat, lng, rayon_km
+          select id, user_id, label, departement, lat, lng, rayon_km, active
           from zones where user_id = ${userId} order by created_at
         `.pipe(Effect.flatMap(decodeZones)),
 
@@ -113,9 +113,11 @@ export class Zones extends Effect.Service<Zones>()("db/Zones", {
                 zones.map((z) => ({
                   userId,
                   label: z.label,
+                  departement: z.departement,
                   lat: z.lat,
                   lng: z.lng,
                   rayonKm: z.rayonKm,
+                  active: z.active,
                 })),
               )}
             `

@@ -1,7 +1,7 @@
 /**
  * Server functions : tout ce que le dashboard declenche cote serveur.
  *
- * Chacune commence par `exigerUtilisateur()` — l'autorisation est ici, plus
+ * Chacune commence par `exigerUtilisateur()` : l'autorisation est ici, plus
  * dans des policies de base comme en v1. Les depots, eux, portent toujours le
  * `user_id` dans leur `where`, ce qui fait une seconde barriere.
  */
@@ -42,9 +42,11 @@ const versProfileDto = (p: Profile): ProfileDto => ({
 const versZoneDto = (z: Zone): ZoneDto => ({
   id: z.id,
   label: z.label,
+  departement: z.departement,
   lat: z.lat,
   lng: z.lng,
   rayonKm: z.rayonKm,
+  active: z.active,
 })
 
 const versOffreDto = (o: JobResult): OffreDto => ({
@@ -150,7 +152,7 @@ export const televerserCv = createServerFn({ method: "POST" })
         const nom = fichier.name.toLowerCase()
         if (!EXTENSIONS_CV.some((ext) => nom.endsWith(ext))) {
           return yield* new CvInvalide({
-            raison: "Format non reconnu — PDF, DOC ou DOCX uniquement.",
+            raison: "Format non reconnu : PDF, DOC ou DOCX uniquement.",
           })
         }
         if (fichier.size > TAILLE_CV_MAX) {

@@ -23,9 +23,11 @@ export interface ProfileDto {
 export interface ZoneDto {
   readonly id: string
   readonly label: string
+  readonly departement: string | null
   readonly lat: number
   readonly lng: number
   readonly rayonKm: number
+  readonly active: boolean
 }
 
 export interface OffreDto {

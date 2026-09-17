@@ -24,7 +24,7 @@ export const DiscordId = Schema.String.pipe(
 export type DiscordId = typeof DiscordId.Type
 
 // ---------------------------------------------------------------------------
-// Utilisateur — l'identite vient entierement de Discord depuis la v2.
+// Utilisateur : l'identite vient entierement de Discord depuis la v2.
 // ---------------------------------------------------------------------------
 export class User extends Schema.Class<User>("User")({
   id: UserId,
@@ -48,7 +48,7 @@ export class User extends Schema.Class<User>("User")({
 }
 
 // ---------------------------------------------------------------------------
-// Profil — preferences de veille. Plus de webhook ni d'ID Discord a saisir :
+// Profil : preferences de veille. Plus de webhook ni d'ID Discord a saisir :
 // le bot envoie un DM, et on connait deja l'ID via la connexion OAuth.
 // ---------------------------------------------------------------------------
 export class Profile extends Schema.Class<Profile>("Profile")({
@@ -77,17 +77,23 @@ export class Zone extends Schema.Class<Zone>("Zone")({
   id: ZoneId,
   userId: UserId,
   label: Schema.String,
+  /** Numero de departement, renseigne par le geocodage inverse. */
+  departement: Schema.NullOr(Schema.String),
   lat: Latitude,
   lng: Longitude,
   rayonKm: RayonKm,
+  /** Une zone en pause est conservee mais ignoree par la veille. */
+  active: Schema.Boolean,
 }) {}
 
 /** Zone telle qu'envoyee par le formulaire : pas encore d'identifiant. */
 export const ZoneInput = Schema.Struct({
   label: Schema.String.pipe(Schema.maxLength(120)),
+  departement: Schema.NullOr(Schema.String.pipe(Schema.maxLength(10))),
   lat: Latitude,
   lng: Longitude,
   rayonKm: RayonKm,
+  active: Schema.Boolean,
 })
 export type ZoneInput = typeof ZoneInput.Type
 
@@ -112,7 +118,7 @@ export class JobResult extends Schema.Class<JobResult>("JobResult")({
   postuleAt: Schema.NullOr(Schema.DateFromSelf),
   /** Tri facon swipe : null = indecis, true = garde, false = ecarte. */
   interet: Schema.NullOr(Schema.Boolean),
-  /** Date du DM envoye par le bot — evite de notifier deux fois. */
+  /** Date du DM envoye par le bot : evite de notifier deux fois. */
   notifiedAt: Schema.NullOr(Schema.DateFromSelf),
   createdAt: Schema.DateFromSelf,
 }) {}
@@ -134,5 +140,5 @@ export const messageRelance = (r: {
   readonly employeur: string | null
 }): string =>
   `Bonjour, je me permets de relancer suite a ma candidature pour le poste de ` +
-  `${r.titre ?? "..."} chez ${r.employeur ?? "..."} — je reste tres interesse(e) ` +
+  `${r.titre ?? "..."} chez ${r.employeur ?? "..."} : je reste tres interesse(e) ` +
   `et disponible pour en echanger. Bonne journee.`
