@@ -12,7 +12,7 @@ import appCss from "~/styles/app.css?url"
  * Applique le theme du systeme avant le premier rendu. Sans ce script inline,
  * la page s'afficherait en clair pendant un instant avant de basculer.
  */
-const SCRIPT_THEME = `(function(){try{var m=matchMedia("(prefers-color-scheme: dark)");var a=function(e){document.documentElement.classList.toggle("dark",e.matches)};a(m);m.addEventListener("change",a)}catch(e){}})()`
+const SCRIPT_THEME = `(function(){try{var c="jobrick-theme";var s=null;try{s=localStorage.getItem(c)}catch(e){}var m=matchMedia("(prefers-color-scheme: dark)");var a=function(){var d=s==="sombre"||(s!=="clair"&&m.matches);document.documentElement.classList.toggle("dark",d)};a();if(s!=="clair"&&s!=="sombre"){m.addEventListener("change",a)}}catch(e){}})()`
 
 export const Route = createRootRouteWithContext<{
   readonly queryClient: QueryClient
@@ -21,7 +21,7 @@ export const Route = createRootRouteWithContext<{
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1.0" },
-      { title: "Jobrick — ta veille d'offres, pilotee par toi" },
+      { title: "Jobrick : ta veille d'offres, pilotee par toi" },
       {
         name: "description",
         content:
@@ -34,7 +34,7 @@ export const Route = createRootRouteWithContext<{
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
       },
       { rel: "stylesheet", href: appCss },
     ],
