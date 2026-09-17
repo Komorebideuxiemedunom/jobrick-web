@@ -5,7 +5,13 @@
       "node",
       "vite/client"
     ],
-    "moduleDetection": "force"
+    "moduleDetection": "force",
+    "baseUrl": ".",
+    "paths": {
+      "~/*": [
+        "./src/*"
+      ]
+    }
   },
   "include": [
     "src/**/*.ts",

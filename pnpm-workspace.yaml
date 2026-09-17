@@ -23,3 +23,4 @@ minimumReleaseAgeExclude:
   - '@tanstack/start-plugin-core@1.171.46'
   - '@tanstack/start-server-core@1.169.37'
   - '@tanstack/start-storage-context@1.167.34'
+  - lucide-react@1.47.0
