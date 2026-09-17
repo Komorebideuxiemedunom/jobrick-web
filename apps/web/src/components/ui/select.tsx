@@ -13,7 +13,7 @@ function Select({ className, children, ...props }: ComponentProps<"select">) {
       <select
         data-slot="select"
         className={cn(
-          "border-input h-9 w-full cursor-pointer appearance-none rounded-md border bg-transparent py-1 pr-8 pl-3 text-sm shadow-xs transition-[color,box-shadow] outline-none",
+          "border-input h-11 w-full cursor-pointer appearance-none rounded-[10px] border bg-card py-1 pr-9 pl-3.5 text-sm font-medium transition-[color,box-shadow] outline-none",
           "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
           "disabled:cursor-not-allowed disabled:opacity-50",
           className,
