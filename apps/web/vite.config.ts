@@ -1,4 +1,5 @@
 import { tanstackStart } from "@tanstack/react-start/plugin/vite"
+import viteReact from "@vitejs/plugin-react"
 import { fileURLToPath } from "node:url"
 import { defineConfig, loadEnv } from "vite"
 
@@ -13,7 +14,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     server: { port: 3000 },
-    plugins: [tanstackStart()],
+    // `tanstackStart` d'abord, `viteReact` ensuite : le mode dev de Start
+    // s'appuie sur le runtime React Refresh fourni par le second.
+    plugins: [tanstackStart(), viteReact()],
     // Ces deux-la ne sont chargees que dans le navigateur, a la demande
     // (scan ATS) : on les sort du pre-bundling.
     optimizeDeps: { exclude: ["pdfjs-dist", "mammoth"] },
