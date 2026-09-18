@@ -139,3 +139,69 @@ begin
       add constraint job_results_user_id_reference_key unique (user_id, reference);
   end if;
 end $$;
+
+-- ---------------------------------------------------------------------
+-- Migration : deux regles qui ne tenaient pas ce qu'elles annonçaient.
+-- A coller une seule fois dans le SQL Editor. Rejouable sans effet.
+-- ---------------------------------------------------------------------
+
+-- 1. La policy "profiles_self" laisse l'utilisateur ecrire n'importe quoi
+--    dans sa colonne `email`, y compris l'adresse de quelqu'un d'autre. Or
+--    c'est cette colonne que le bot lit pour envoyer les notifications : on
+--    pouvait donc faire expedier des mails Jobrick a un tiers. L'adresse est
+--    desormais recopiee d'office depuis auth.users, quoi qu'envoie le client.
+create or replace function public.pin_profile_email()
+returns trigger as $$
+begin
+  select email into new.email from auth.users where id = new.id;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists profiles_pin_email on public.profiles;
+create trigger profiles_pin_email
+  before insert or update on public.profiles
+  for each row execute procedure public.pin_profile_email();
+
+-- 2. Le commentaire de "job_results_update_self" dit que l'utilisateur ne
+--    peut que marquer ses offres, mais la policy autorise la reecriture de
+--    tout : titre, url, score, raison. Un compte pouvait donc maquiller ses
+--    propres offres, et le score affiche ne voulait plus rien dire. On borne
+--    l'update aux seules colonnes de suivi.
+create or replace function public.job_results_suivi_seulement()
+returns trigger as $$
+begin
+  if new.user_id is distinct from old.user_id
+     or new.reference is distinct from old.reference
+     or new.titre is distinct from old.titre
+     or new.employeur is distinct from old.employeur
+     or new.lieu is distinct from old.lieu
+     or new.url is distinct from old.url
+     or new.score is distinct from old.score
+     or new.raison is distinct from old.raison
+     or new.conseil_candidature is distinct from old.conseil_candidature
+     or new.source is distinct from old.source
+     or new.created_at is distinct from old.created_at then
+    raise exception 'job_results : seules les colonnes de suivi (vu, postule, postule_at, interet) sont modifiables';
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+-- Le trigger ne porte que sur UPDATE : les INSERT du bot (service_role)
+-- passent sans changement. S'il doit un jour corriger une offre deja
+-- inseree, il faudra l'exempter explicitement.
+drop trigger if exists job_results_suivi on public.job_results;
+create trigger job_results_suivi
+  before update on public.job_results
+  for each row execute procedure public.job_results_suivi_seulement();
+
+-- 3. Le rayon est borne cote navigateur (1 a 200 km) ; la base l'ignorait et
+--    acceptait n'importe quel entier.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'zones_rayon_km_check') then
+    alter table zones add constraint zones_rayon_km_check
+      check (rayon_km between 1 and 200);
+  end if;
+end $$;

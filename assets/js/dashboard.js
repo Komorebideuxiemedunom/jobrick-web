@@ -64,13 +64,28 @@
   const cvStatus = document.getElementById("cv-status");
   let pendingCvFile = null;
 
-  function showCvFilled(filename) {
+  /**
+   * enAttente distingue le fichier tout juste depose (pas encore envoye) du
+   * fichier deja enregistre. Sans ca, l'etiquette gardait son "(pas encore
+   * enregistre)" apres un enregistrement reussi, en contradiction directe
+   * avec le "Enregistre" affiche par le bouton juste en dessous.
+   */
+  function showCvFilled(filename, enAttente) {
     document.getElementById("dropzone-empty").hidden = true;
     document.getElementById("dropzone-filled").hidden = false;
-    document.getElementById("cv-filename-text").textContent = filename;
+    document.getElementById("cv-filename-text").textContent =
+      enAttente ? `${filename} (pas encore enregistre)` : filename;
   }
 
   dropzone.addEventListener("click", () => cvInput.click());
+  // La zone de depot est un <div> : sans ca, impossible de deposer un CV au
+  // clavier, et le parcours s'arretait la pour qui n'utilise pas de souris.
+  dropzone.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      cvInput.click();
+    }
+  });
   dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("dropzone-over"); });
   dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dropzone-over"));
   dropzone.addEventListener("drop", (e) => {
@@ -122,7 +137,7 @@
       return;
     }
     pendingCvFile = file;
-    showCvFilled(file.name + " (pas encore enregistre)");
+    showCvFilled(file.name, true);
     cvStatus.textContent = "";
     updateAtsButtonState();
     updateOnboarding();
@@ -222,7 +237,8 @@
   }
   initCarteTactile();
 
-  let zones = []; // {id?, label, lat, lng, rayon_km, marker, circle}
+  let zones = [];        // {id?, label, lat, lng, rayon_km, marker, circle}
+  let zonesEnBase = [];  // ids des lignes actuellement en base, a purger au prochain enregistrement
 
   function addZoneMarker(zone) {
     const marker = L.marker([zone.lat, zone.lng], { draggable: true, icon: iconeZone }).addTo(map);
@@ -275,9 +291,27 @@
       radius.max = "200";
       radius.value = zone.rayon_km;
       radius.className = "zone-radius";
+      // Le champ pouvait afficher 0 pendant qu'on enregistrait 25, ou
+      // accepter 999 alors que le max annonce est 200 : on borne la valeur
+      // et on la reecrit dans le champ des que la saisie est finie, pour que
+      // l'ecran et la base disent la meme chose.
+      function lireRayon(valeur) {
+        const n = parseInt(valeur, 10);
+        if (!Number.isFinite(n)) return null;
+        return Math.min(200, Math.max(1, n));
+      }
+
       radius.addEventListener("input", (e) => {
-        zone.rayon_km = parseInt(e.target.value, 10) || 25;
-        zone.circle.setRadius(zone.rayon_km * 1000);
+        const n = lireRayon(e.target.value);
+        if (n === null) return; // champ vide en cours de frappe : on attend
+        zone.rayon_km = n;
+        zone.circle.setRadius(n * 1000);
+      });
+      radius.addEventListener("blur", (e) => {
+        const n = lireRayon(e.target.value) ?? 25;
+        zone.rayon_km = n;
+        zone.circle.setRadius(n * 1000);
+        e.target.value = n;
       });
 
       const radiusUnit = document.createElement("span");
@@ -318,9 +352,40 @@
     let debounceTimer = null;
     let requestToken = 0;
 
+    let indexActif = -1;
+
     function hideResults() {
       resultsEl.hidden = true;
       resultsEl.innerHTML = "";
+      indexActif = -1;
+      input.setAttribute("aria-expanded", "false");
+    }
+
+    // Le style .is-active existait deja mais rien ne le posait : la liste ne
+    // repondait qu'a la souris, et on ne pouvait pas choisir une ville au
+    // clavier.
+    function surligner(i) {
+      const items = [...resultsEl.querySelectorAll("li[data-i]")];
+      if (!items.length) return;
+      indexActif = (i + items.length) % items.length;
+      items.forEach((li, n) => li.classList.toggle("is-active", n === indexActif));
+      items[indexActif].scrollIntoView({ block: "nearest" });
+    }
+
+    function choisir(place) {
+      if (!place) return;
+      const lat = parseFloat(place.lat);
+      const lng = parseFloat(place.lon);
+      const label = place.address?.city || place.address?.town || place.address?.village
+        || place.address?.municipality || place.display_name.split(",")[0];
+      addZoneMarker({ label, lat, lng, rayon_km: 25 });
+      map.setView([lat, lng], 10);
+      input.value = "";
+      hideResults();
+    }
+
+    function placeA(i) {
+      return JSON.parse(resultsEl.dataset.places || "[]")[i];
     }
 
     async function search(query) {
@@ -341,6 +406,8 @@
         `).join("");
         resultsEl.hidden = false;
         resultsEl.dataset.places = JSON.stringify(data);
+        indexActif = -1;
+        input.setAttribute("aria-expanded", "true");
       } catch (_) { /* pas de connexion / API indisponible : on n'affiche rien */ }
     }
 
@@ -353,18 +420,15 @@
 
     resultsEl.addEventListener("click", (e) => {
       const li = e.target.closest("li[data-i]");
-      if (!li) return;
-      const places = JSON.parse(resultsEl.dataset.places || "[]");
-      const place = places[Number(li.dataset.i)];
-      if (!place) return;
-      const lat = parseFloat(place.lat);
-      const lng = parseFloat(place.lon);
-      const label = place.address?.city || place.address?.town || place.address?.village
-        || place.address?.municipality || place.display_name.split(",")[0];
-      addZoneMarker({ label, lat, lng, rayon_km: 25 });
-      map.setView([lat, lng], 10);
-      input.value = "";
-      hideResults();
+      if (li) choisir(placeA(Number(li.dataset.i)));
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (resultsEl.hidden) return;
+      if (e.key === "ArrowDown") { e.preventDefault(); surligner(indexActif + 1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); surligner(indexActif - 1); }
+      else if (e.key === "Enter" && indexActif >= 0) { e.preventDefault(); choisir(placeA(indexActif)); }
+      else if (e.key === "Escape") { hideResults(); }
     });
 
     document.addEventListener("click", (e) => {
@@ -380,6 +444,7 @@
       const bounds = [];
       data.forEach((z) => {
         addZoneMarker({ id: z.id, label: z.label, lat: z.lat, lng: z.lng, rayon_km: z.rayon_km });
+        zonesEnBase.push(z.id);
         bounds.push([z.lat, z.lng]);
       });
       map.fitBounds(bounds, { maxZoom: 9, padding: [40, 40] });
@@ -636,8 +701,9 @@
     btnSave.classList.add("is-loading");
     btnSaveLabel.innerHTML = `<span class="spinner"></span><span class="btn-label-text">Enregistrement…</span>`;
 
+    const discordActif = document.getElementById("notify-discord").checked;
     const discordUserId = discordAutoId || document.getElementById("discord-user-id").value.trim();
-    if (discordUserId && !/^\d{15,25}$/.test(discordUserId)) {
+    if (discordActif && discordUserId && !/^\d{15,25}$/.test(discordUserId)) {
       saveStatus.textContent = "ID Discord invalide : ce sont uniquement des chiffres (ex. 123456789012345678).";
       saveStatus.className = "field-status field-status-error";
       btnSave.classList.remove("is-loading");
@@ -654,18 +720,27 @@
         const path = `${user.id}/${Date.now()}_${nomDeFichierSur(pendingCvFile.name)}`;
         const { error: upErr } = await supa.storage.from("cvs").upload(path, pendingCvFile, { upsert: true });
         if (upErr) throw upErr;
+        // Le CV precedent ne sert plus a rien : sans ce menage, chaque
+        // remplacement laissait un fichier orphelin dans le bucket.
+        const ancienCv = profile?.cv_path;
         cvPath = path;
         cvFilename = pendingCvFile.name;
+        if (ancienCv && ancienCv !== path) {
+          const { error: rmErr } = await supa.storage.from("cvs").remove([ancienCv]);
+          if (rmErr) console.error("suppression de l'ancien CV:", rmErr);
+        }
       }
 
       // 2. Profil
       const { error: profErr } = await supa.from("profiles").upsert({
         id: user.id,
-        email: user.email,
+        // email volontairement absent : c'est la base qui le recopie depuis
+        // auth.users (trigger profiles_pin_email), pour qu'on ne puisse pas
+        // faire envoyer les notifications a l'adresse de quelqu'un d'autre.
         job_keywords: document.getElementById("job-keywords").value,
         notify_email: document.getElementById("notify-email").checked,
         notify_discord: document.getElementById("notify-discord").checked,
-        discord_user_id: discordUserId || null,
+        discord_user_id: (discordActif && discordUserId) || null,
         discord_username: discordAutoName || profile?.discord_username || null,
         cv_path: cvPath,
         cv_filename: cvFilename,
@@ -674,8 +749,13 @@
       });
       if (profErr) throw profErr;
 
-      // 3. Zones : on supprime tout puis on reinsere (simple et suffisant a ce stade)
-      await supa.from("zones").delete().eq("user_id", user.id);
+      // 3. Zones : on insere les nouvelles AVANT de supprimer les anciennes.
+      //    L'ordre inverse effacait tout puis echouait parfois a reinserer
+      //    (reseau coupe, session expiree), et l'utilisateur perdait ses
+      //    zones sans avoir rien demande. Au pire on a un doublon transitoire,
+      //    jamais un trou.
+      const anciennesZones = zonesEnBase.slice();
+      let nouveauxIds = [];
       if (zones.length) {
         const rows = zones.map((z) => ({
           user_id: user.id,
@@ -684,12 +764,22 @@
           lng: z.lng,
           rayon_km: z.rayon_km,
         }));
-        const { error: zErr } = await supa.from("zones").insert(rows);
+        const { data: inserees, error: zErr } = await supa.from("zones").insert(rows).select();
         if (zErr) throw zErr;
+        // On reattache les identifiants frais, sinon le prochain
+        // enregistrement supprimerait des lignes qui n'existent plus.
+        (inserees || []).forEach((row, i) => { if (zones[i]) zones[i].id = row.id; });
+        nouveauxIds = (inserees || []).map((row) => row.id);
       }
+      if (anciennesZones.length) {
+        const { error: delErr } = await supa.from("zones").delete().in("id", anciennesZones);
+        if (delErr) console.error("nettoyage des anciennes zones:", delErr);
+      }
+      zonesEnBase = nouveauxIds;
 
       profile = { ...(profile || {}), cv_path: cvPath, cv_filename: cvFilename };
       pendingCvFile = null;
+      if (cvFilename) showCvFilled(cvFilename, false);
       updateAtsButtonState();
       updateOnboarding();
       saveStatus.textContent = "";
@@ -773,7 +863,12 @@
     `;
   }
 
-  function renderResults() {
+  /**
+   * Les offres telles qu'elles sont affichees : sans celles ecartees au tri,
+   * filtrees et triees comme a l'ecran. L'export s'appuie dessus, sinon le
+   * CSV ressortait les offres que l'utilisateur venait justement d'ecarter.
+   */
+  function offresVisibles() {
     let list = allResults.filter((r) => r.interet !== false);
     if (hideSeenCheckbox.checked) list = list.filter((r) => !r.vu);
     if (sortSelect.value === "score") {
@@ -781,6 +876,25 @@
     } else {
       list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }
+    return list;
+  }
+
+  /**
+   * Les urls viennent d'un scraper externe : on n'ouvre que du http(s), sinon
+   * une url en "javascript:" deposee en base s'executerait au clic.
+   */
+  function urlSure(url) {
+    try {
+      const u = new URL(url, window.location.href);
+      return (u.protocol === "http:" || u.protocol === "https:") ? u.href : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function renderResults() {
+    const list = offresVisibles();
+    exportBtn.disabled = !list.length;
 
     if (!list.length) {
       resultsContainer.innerHTML = allResults.length
@@ -790,9 +904,11 @@
       return;
     }
 
-    resultsContainer.innerHTML = list.map((r) => `
+    resultsContainer.innerHTML = list.map((r) => {
+      const lien = urlSure(r.url);
+      return `
       <div class="result-item ${r.vu ? "" : "is-new"}" data-id="${r.id}">
-        <a class="result-link" href="${escapeHtml(r.url || "#")}" target="_blank" rel="noopener noreferrer">
+        <a class="result-link" ${lien ? `href="${escapeHtml(lien)}"` : "aria-disabled=\"true\""} target="_blank" rel="noopener noreferrer">
           <div class="result-score">${r.score ?? "–"}</div>
           <div class="result-body">
             <div class="result-title-row">
@@ -810,7 +926,8 @@
         </div>
         ${reseauPanelHtml(r.employeur)}
       </div>
-    `).join("");
+    `;
+    }).join("");
 
     updateStats();
   }
@@ -870,9 +987,10 @@
   hideSeenCheckbox.addEventListener("change", renderResults);
 
   exportBtn.addEventListener("click", () => {
-    if (!allResults.length) return;
+    const aExporter = offresVisibles();
+    if (!aExporter.length) return;
     const header = ["Titre", "Employeur", "Lieu", "Score", "Raison", "URL", "Vu", "Postule", "Date"];
-    const rows = allResults.map((r) => [
+    const rows = aExporter.map((r) => [
       r.titre || "", r.employeur || "", r.lieu || "", r.score ?? "",
       r.raison || "", r.url || "", r.vu ? "oui" : "non", r.postule ? "oui" : "non", r.created_at || "",
     ]);
@@ -900,10 +1018,16 @@
     let active = false;
     let currentId = null;
 
+    const filtres = document.querySelector(".results-filters");
+
     toggleBtn.addEventListener("click", () => {
       active = !active;
       section.hidden = !active;
       resultsContainer.hidden = active;
+      // Tri et filtres ne pilotent que la liste : les laisser actifs pendant
+      // le mode tri donnait des commandes qui ne changeaient rien a l'ecran.
+      if (filtres) filtres.hidden = active;
+      exportBtn.disabled = active || !offresVisibles().length;
       toggleBtn.textContent = active ? "Fermer le tri" : "Mode tri";
       if (active) renderDeck();
     });
@@ -973,6 +1097,9 @@
       const card = document.getElementById("swipe-card-active");
       if (!card || !currentId) return;
       const id = currentId;
+      // La carte suivante n'arrive qu'apres l'animation : sans ca, deux
+      // appuis rapproches renvoyaient deux fois la meme offre.
+      currentId = null;
       card.style.transition = "transform .35s ease, opacity .35s ease";
       card.style.transform = `translateX(${(liked ? 1 : -1) * 600}px) rotate(${liked ? 20 : -20}deg)`;
       card.style.opacity = "0";
