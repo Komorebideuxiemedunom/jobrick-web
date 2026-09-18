@@ -586,6 +586,9 @@ input[type="url"] { margin-top: 10px; }
   margin: -6px 0 16px;
 }
 .results-filters { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+/* display:flex l'emporte sur l'attribut hidden : sans cette regle, masquer
+   les filtres pendant le mode tri n'avait aucun effet. */
+.results-filters[hidden] { display: none; }
 .results-filters select {
   background: var(--surface-alt);
   border: 1px solid var(--border);

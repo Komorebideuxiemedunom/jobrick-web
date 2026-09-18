@@ -76,7 +76,8 @@
       </div>
       <p class="card-sub">Il pilote la veille : c'est lui qui determine si une offre te correspond.</p>
 
-      <div id="dropzone" class="dropzone">
+      <div id="dropzone" class="dropzone" role="button" tabindex="0"
+           aria-controls="cv-input" aria-label="Choisir un fichier de CV a televerser">
         <input type="file" id="cv-input" accept=".pdf,.doc,.docx" hidden>
         <div id="dropzone-empty">
           <p><strong>Glisse ton CV ici</strong> ou clique pour choisir un fichier</p>
@@ -111,8 +112,9 @@
       <p class="card-sub">Clique sur la carte ou tape une ville pour ajouter un point de recherche.</p>
 
       <div class="zone-search">
-        <input type="text" id="zone-search-input" placeholder="Chercher une ville…" autocomplete="off">
-        <ul id="zone-search-results" class="zone-search-results" hidden></ul>
+        <input type="text" id="zone-search-input" placeholder="Chercher une ville…" autocomplete="off"
+               role="combobox" aria-expanded="false" aria-controls="zone-search-results" aria-autocomplete="list">
+        <ul id="zone-search-results" class="zone-search-results" role="listbox" hidden></ul>
       </div>
 
       <div id="map"></div>
