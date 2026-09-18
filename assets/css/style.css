@@ -222,6 +222,35 @@ body.landing { margin: 0; }
 .btn-google:hover { transform: translateY(-2px); background: #000; box-shadow: 0 14px 32px rgba(0,0,0,.35); }
 .btn-google svg { background: #fff; border-radius: 3px; padding: 2px; }
 
+.auth-buttons {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-discord {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px 28px;
+  background: #5865F2;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.btn-discord:hover { transform: translateY(-2px); background: #4752C4; box-shadow: 0 14px 32px rgba(88,101,242,.4); }
+.btn-discord svg { background: #fff; border-radius: 50%; padding: 3px; }
+
 .auth-error { position: relative; color: #FFD6D6; font-size: 13px; margin-top: 14px; }
 
 .hero-mauve .landing-footnote {
@@ -329,6 +358,44 @@ body.landing { margin: 0; }
 .field-status-error { color: var(--error); }
 
 /* Map + zones */
+.zone-search { position: relative; margin-bottom: 14px; }
+.zone-search input[type="text"] {
+  width: 100%;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 13px;
+}
+.zone-search input[type="text"]:focus { outline: none; border-color: var(--accent); }
+.zone-search-results {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 14px 32px rgba(0,0,0,.18);
+  max-height: 220px;
+  overflow-y: auto;
+}
+.zone-search-results li {
+  padding: 9px 10px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.zone-search-results li:hover,
+.zone-search-results li.is-active { background: var(--accent-soft); }
+
 #map {
   height: 300px;
   border-radius: var(--radius-sm);
@@ -391,6 +458,19 @@ textarea, input[type="url"] {
 textarea:focus, input[type="url"]:focus { outline: none; border-color: var(--accent); }
 input[type="url"] { margin-top: 10px; }
 
+#discord-manual-block input[type="text"] {
+  width: 100%;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 13px;
+  margin-top: 10px;
+}
+#discord-manual-block input[type="text"]:focus { outline: none; border-color: var(--accent); }
+
 /* Notif switches */
 .switch-row {
   display: flex;
@@ -404,6 +484,17 @@ input[type="url"] { margin-top: 10px; }
 .switch-row-static { cursor: default; opacity: .7; }
 .switch-row-sub { display: block; color: var(--ink-muted); font-size: 12px; font-weight: 400; }
 .switch-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
+
+.discord-connected-badge {
+  margin: -6px 0 14px;
+  padding: 11px 14px;
+  background: rgba(88,101,242,.12);
+  border: 1px solid rgba(88,101,242,.3);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-size: 13px;
+}
+.discord-connected-badge span { font-weight: 600; }
 
 .discord-id-help {
   margin-top: 10px;

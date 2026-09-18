@@ -25,24 +25,32 @@
     profile = data;
   }
 
+  // Identite Discord recuperee automatiquement si l'utilisateur s'est
+  // connecte via ce provider — sinon il devra coller son identifiant a la
+  // main pour que le bot puisse le DM (cf. discord-manual-block).
+  const discordIdentity = (user.identities || []).find((i) => i.provider === "discord");
+  const discordAutoId = discordIdentity?.identity_data?.provider_id || null;
+  const discordAutoName = discordIdentity?.identity_data?.full_name || discordIdentity?.identity_data?.name || null;
+
+  function renderDiscordSection(checked) {
+    document.getElementById("discord-connected-badge").hidden = !(checked && discordAutoId);
+    document.getElementById("discord-connected-name").textContent = discordAutoName || "";
+    document.getElementById("discord-manual-block").hidden = !(checked && !discordAutoId);
+  }
+
   if (profile) {
     document.getElementById("job-keywords").value = profile.job_keywords || "";
     document.getElementById("notify-email").checked = profile.notify_email ?? true;
     document.getElementById("notify-discord").checked = profile.notify_discord ?? false;
-    document.getElementById("discord-webhook").value = profile.discord_webhook_url || "";
-    document.getElementById("discord-webhook").hidden = !profile.notify_discord;
-    document.getElementById("discord-user-id").value = profile.discord_user_id || "";
-    document.getElementById("discord-user-id").hidden = !profile.notify_discord;
-    document.getElementById("discord-user-id-hint").hidden = !profile.notify_discord;
+    document.getElementById("discord-user-id").value = discordAutoId ? "" : (profile.discord_user_id || "");
+    renderDiscordSection(document.getElementById("notify-discord").checked);
     if (profile.cv_filename) {
       showCvFilled(profile.cv_filename);
     }
   }
 
   document.getElementById("notify-discord").addEventListener("change", (e) => {
-    document.getElementById("discord-webhook").hidden = !e.target.checked;
-    document.getElementById("discord-user-id").hidden = !e.target.checked;
-    document.getElementById("discord-user-id-hint").hidden = !e.target.checked;
+    renderDiscordSection(e.target.checked);
     updateOnboarding();
   });
   document.getElementById("notify-email").addEventListener("change", updateOnboarding);
@@ -189,6 +197,68 @@
     addZoneMarker({ label, lat, lng, rayon_km: 25 });
   });
 
+  // Recherche de ville par texte, en plus du clic sur la carte : meme
+  // resultat (addZoneMarker), juste un autre point d'entree.
+  {
+    const input = document.getElementById("zone-search-input");
+    const resultsEl = document.getElementById("zone-search-results");
+    let debounceTimer = null;
+    let requestToken = 0;
+
+    function hideResults() {
+      resultsEl.hidden = true;
+      resultsEl.innerHTML = "";
+    }
+
+    async function search(query) {
+      const token = ++requestToken;
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`
+        );
+        const data = await res.json();
+        if (token !== requestToken) return; // une frappe plus recente a deja relance une recherche
+        if (!data.length) {
+          resultsEl.innerHTML = `<li class="zone-search-empty">Aucun lieu trouve.</li>`;
+          resultsEl.hidden = false;
+          return;
+        }
+        resultsEl.innerHTML = data.map((place, i) => `
+          <li data-i="${i}">${escapeHtml(place.display_name)}</li>
+        `).join("");
+        resultsEl.hidden = false;
+        resultsEl.dataset.places = JSON.stringify(data);
+      } catch (_) { /* pas de connexion / API indisponible : on n'affiche rien */ }
+    }
+
+    input.addEventListener("input", () => {
+      const query = input.value.trim();
+      clearTimeout(debounceTimer);
+      if (query.length < 3) { hideResults(); return; }
+      debounceTimer = setTimeout(() => search(query), 350);
+    });
+
+    resultsEl.addEventListener("click", (e) => {
+      const li = e.target.closest("li[data-i]");
+      if (!li) return;
+      const places = JSON.parse(resultsEl.dataset.places || "[]");
+      const place = places[Number(li.dataset.i)];
+      if (!place) return;
+      const lat = parseFloat(place.lat);
+      const lng = parseFloat(place.lon);
+      const label = place.address?.city || place.address?.town || place.address?.village
+        || place.address?.municipality || place.display_name.split(",")[0];
+      addZoneMarker({ label, lat, lng, rayon_km: 25 });
+      map.setView([lat, lng], 10);
+      input.value = "";
+      hideResults();
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".zone-search")) hideResults();
+    });
+  }
+
   // Charge les zones existantes
   {
     const { data, error } = await supa.from("zones").select("*").eq("user_id", user.id);
@@ -326,7 +396,7 @@
     btnSave.classList.add("is-loading");
     btnSaveLabel.innerHTML = `<span class="spinner"></span><span class="btn-label-text">Enregistrement…</span>`;
 
-    const discordUserId = document.getElementById("discord-user-id").value.trim();
+    const discordUserId = discordAutoId || document.getElementById("discord-user-id").value.trim();
     if (discordUserId && !/^\d{15,25}$/.test(discordUserId)) {
       saveStatus.textContent = "ID Discord invalide — ce sont uniquement des chiffres (ex. 123456789012345678).";
       saveStatus.className = "field-status field-status-error";
@@ -355,8 +425,8 @@
         job_keywords: document.getElementById("job-keywords").value,
         notify_email: document.getElementById("notify-email").checked,
         notify_discord: document.getElementById("notify-discord").checked,
-        discord_webhook_url: document.getElementById("discord-webhook").value || null,
-        discord_user_id: document.getElementById("discord-user-id").value.trim() || null,
+        discord_user_id: discordUserId || null,
+        discord_username: discordAutoName || profile?.discord_username || null,
         cv_path: cvPath,
         cv_filename: cvFilename,
         cv_uploaded_at: pendingCvFile ? new Date().toISOString() : profile?.cv_uploaded_at,

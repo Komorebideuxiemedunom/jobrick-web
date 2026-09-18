@@ -103,7 +103,12 @@
         </div>
         <h2>Zones de recherche</h2>
       </div>
-      <p class="card-sub">Clique sur la carte pour ajouter un point de recherche.</p>
+      <p class="card-sub">Clique sur la carte ou tape une ville pour ajouter un point de recherche.</p>
+
+      <div class="zone-search">
+        <input type="text" id="zone-search-input" placeholder="Chercher une ville…" autocomplete="off">
+        <ul id="zone-search-results" class="zone-search-results" hidden></ul>
+      </div>
 
       <div id="map"></div>
 
@@ -142,26 +147,36 @@
       <label class="switch-row">
         <span>
           <strong>Discord</strong>
-          <span class="switch-row-sub">Webhook d'un salon de ton serveur</span>
+          <span class="switch-row-sub" id="discord-connected-sub">Message prive, envoye directement par le bot</span>
         </span>
         <input type="checkbox" id="notify-discord">
       </label>
-      <input type="url" id="discord-webhook" placeholder="https://discord.com/api/webhooks/…" hidden>
-      <input type="text" id="discord-user-id" placeholder="Ton identifiant Discord — que des chiffres, ex. 123456789012345678" hidden>
-      <div class="discord-id-help" id="discord-user-id-hint" hidden>
-        <p>
-          <strong>Ton pseudo ne suffit pas</strong> — "komorebideuxiemedunom"
-          sert a te trouver dans l'appli, mais un message automatique ne
-          peut te @-mentionner qu'avec ton <strong>identifiant numerique</strong>
-          (18 chiffres, invisible par defaut).
-        </p>
-        <p class="discord-id-steps">
-          Reglages → Vie privee et securite → active <strong>Mode developpeur</strong>,
-          puis clic droit sur ton profil → <strong>Copier l'identifiant</strong>.
-        </p>
-        <a href="https://support.discord.com/hc/en-us/articles/206346498" target="_blank" rel="noopener noreferrer">
-          Voir le guide officiel Discord →
-        </a>
+
+      <div id="discord-connected-badge" class="discord-connected-badge" hidden>
+        ✓ Connecte via Discord — <span id="discord-connected-name"></span>. Le bot pourra t'ecrire en prive.
+      </div>
+
+      <div id="discord-manual-block" hidden>
+        <input type="text" id="discord-user-id" placeholder="Ton identifiant Discord — que des chiffres, ex. 123456789012345678">
+        <div class="discord-id-help" id="discord-user-id-hint">
+          <p>
+            Tu t'es connecte avec Google, donc Jobrick ne connait pas encore
+            ton compte Discord. <strong>Ton pseudo ne suffit pas</strong> —
+            un message prive automatique a besoin de ton
+            <strong>identifiant numerique</strong> (18 chiffres, invisible
+            par defaut).
+          </p>
+          <p class="discord-id-steps">
+            Reglages → Vie privee et securite → active <strong>Mode developpeur</strong>,
+            puis clic droit sur ton profil → <strong>Copier l'identifiant</strong>.
+            Il faut aussi partager un serveur avec le bot Jobrick pour qu'il
+            puisse t'ecrire — le lien d'invitation est dans le mail de
+            bienvenue.
+          </p>
+          <a href="https://support.discord.com/hc/en-us/articles/206346498" target="_blank" rel="noopener noreferrer">
+            Voir le guide officiel Discord →
+          </a>
+        </div>
       </div>
 
       <label class="switch-row switch-row-static">

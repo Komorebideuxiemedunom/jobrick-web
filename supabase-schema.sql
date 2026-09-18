@@ -12,8 +12,8 @@ create table if not exists profiles (
   job_keywords text,               -- intitules de poste recherches, texte libre
   notify_email boolean default true,
   notify_discord boolean default false,
-  discord_webhook_url text,
-  discord_user_id text,            -- pour @-mentionner : evite le spam si le webhook est partage
+  discord_user_id text,            -- identifiant numerique Discord, pour le DM du bot
+  discord_username text,           -- pseudo Discord, affichage seul
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -33,6 +33,9 @@ create table if not exists zones (
 create table if not exists job_results (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references profiles(id) on delete cascade not null,
+  reference text,                  -- identifiant de la source (prefixe "csp:", "adzuna:fr:"...)
+                                    -- sert au bot a ne jamais renvoyer deux fois la meme offre
+                                    -- au meme utilisateur ; url seule n'est pas fiable pour ca
   titre text,
   employeur text,
   lieu text,
@@ -45,7 +48,8 @@ create table if not exists job_results (
   postule boolean default false,   -- suivi de candidature, coche par l'utilisateur
   postule_at timestamptz,          -- date de candidature, pour la relance a J+7
   interet boolean,                 -- tri façon swipe : null=indecis, true=garde, false=ecarte
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  unique (user_id, reference)
 );
 
 -- Row Level Security : chacun ne voit/modifie que ses propres donnees
@@ -67,12 +71,24 @@ create policy "job_results_select_self" on job_results
 create policy "job_results_update_self" on job_results
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- Cree automatiquement une ligne 'profiles' a la premiere connexion
+-- Cree automatiquement une ligne 'profiles' a la premiere connexion.
+-- Si la connexion se fait via Discord, l'identifiant numerique et le pseudo
+-- sont recuperes directement depuis les metadonnees renvoyees par Discord
+-- (provider_id / full_name) : pas besoin que l'utilisateur les recopie a la
+-- main pour que le bot puisse lui envoyer un message prive.
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, email, full_name)
-  values (new.id, new.email, new.raw_user_meta_data->>'full_name');
+  insert into public.profiles (id, email, full_name, discord_user_id, discord_username)
+  values (
+    new.id,
+    new.email,
+    new.raw_user_meta_data->>'full_name',
+    case when new.raw_app_meta_data->>'provider' = 'discord'
+      then new.raw_user_meta_data->>'provider_id' end,
+    case when new.raw_app_meta_data->>'provider' = 'discord'
+      then coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name') end
+  );
   return new;
 end;
 $$ language plpgsql security definer;
@@ -96,3 +112,30 @@ create policy "cvs_read_own" on storage.objects
 
 create policy "cvs_delete_own" on storage.objects
   for delete using (bucket_id = 'cvs' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Migration : projet deja cree avant le passage au DM Discord direct
+-- (webhook remplace par un bot qui ecrit en prive). A coller une seule fois
+-- si `profiles` existe deja sans `discord_username` ou avec l'ancienne
+-- colonne `discord_webhook_url` — sans effet si deja applique.
+alter table profiles add column if not exists discord_username text;
+alter table profiles drop column if exists discord_webhook_url;
+
+-- Migration : projet deja cree avant le passage du bot Jobrick au
+-- multi-utilisateur (il lit desormais directement les comptes d'ici, au lieu
+-- de tourner sur un profil fige d'une seule personne). A coller une seule
+-- fois si `job_results` existe deja sans `reference` — sans effet si deja
+-- applique. Les lignes deja presentes gardent `reference` a NULL : elles ne
+-- gaspillent pas la contrainte unique tant qu'aucune nouvelle ligne pour ce
+-- meme (user_id, reference) n'est inseree.
+alter table job_results add column if not exists reference text;
+-- Postgres ne supporte pas "ADD CONSTRAINT IF NOT EXISTS" : ce bloc verifie
+-- lui-meme avant d'ajouter, pour rester rejouable sans erreur.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'job_results_user_id_reference_key'
+  ) then
+    alter table job_results
+      add constraint job_results_user_id_reference_key unique (user_id, reference);
+  end if;
+end $$;
