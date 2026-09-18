@@ -26,7 +26,7 @@
   }
 
   // Identite Discord recuperee automatiquement si l'utilisateur s'est
-  // connecte via ce provider — sinon il devra coller son identifiant a la
+  // connecte via ce provider. Sinon il devra coller son identifiant a la
   // main pour que le bot puisse le DM (cf. discord-manual-block).
   const discordIdentity = (user.identities || []).find((i) => i.provider === "discord");
   const discordAutoId = discordIdentity?.identity_data?.provider_id || null;
@@ -82,11 +82,37 @@
     if (e.target.files.length) handleCvFile(e.target.files[0]);
   });
 
+  /**
+   * Supabase Storage refuse les clefs contenant autre chose que de l'ASCII
+   * (accents, emoji, caracteres exotiques) : l'upload repond "Invalid key" et
+   * l'enregistrement echoue en entier. Un CV nomme "CV Ruiz-Noemie 2026.pdf"
+   * avec un accent suffit a tout bloquer, donc on assainit le nom avant de
+   * s'en servir comme chemin. Le nom d'origine, lui, reste affiche a l'ecran
+   * et stocke dans profiles.cv_filename.
+   */
+  function nomDeFichierSur(nom) {
+    const brut = (nom || "cv.pdf").trim();
+    const point = brut.lastIndexOf(".");
+    const base = point > 0 ? brut.slice(0, point) : brut;
+    const ext = point > 0 ? brut.slice(point + 1).toLowerCase() : "pdf";
+
+    const baseSure = base
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")   // enleve les accents
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")  // tout le reste devient un tiret
+      .replace(/-{2,}/g, "-")
+      .replace(/^[-.]+|[-.]+$/g, "")
+      .slice(0, 80);
+
+    const extSure = ext.replace(/[^a-z0-9]/g, "").slice(0, 8) || "pdf";
+    return `${baseSure || "cv"}.${extSure}`;
+  }
+
   function handleCvFile(file) {
     const okTypes = [".pdf", ".doc", ".docx"];
     const ok = okTypes.some((ext) => file.name.toLowerCase().endsWith(ext));
     if (!ok) {
-      cvStatus.textContent = "Format non reconnu — PDF, DOC ou DOCX uniquement.";
+      cvStatus.textContent = "Format non reconnu : PDF, DOC ou DOCX uniquement.";
       cvStatus.className = "field-status field-status-error";
       return;
     }
@@ -105,20 +131,107 @@
   // ------------------------------------------------------------------
   // Carte + zones
   // ------------------------------------------------------------------
-  const map = L.map("map").setView([46.6, 2.5], 5); // centre France
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 18,
-  }).addTo(map);
+  const map = L.map("map", {
+    zoomControl: false,
+    scrollWheelZoom: false, // la molette fait defiler la page, pas zoomer la carte
+  }).setView([46.6, 2.5], 5); // centre France
+
+  /**
+   * Fond de carte : OpenFreeMap "positron", vectoriel et sans clef d'API.
+   * Tres pale, net a tous les zooms, et il garde les noms de villes lisibles,
+   * ce qui compte pour poser ses zones. Le fond OSM par defaut (routes jaunes,
+   * forets vertes, hachures partout) se bagarrait avec la charte et noyait les
+   * cercles mauves.
+   *
+   * Le vectoriel demande WebGL : si le navigateur ne suit pas, on retombe sur
+   * un fond raster gris clair plutot que sur une carte blanche.
+   */
+  function poserFondDeCarte(m) {
+    const credits =
+      '<a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> ' +
+      '&copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> ' +
+      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>';
+
+    if (typeof L.maplibreGL === "function" && window.WebGLRenderingContext) {
+      try {
+        L.maplibreGL({
+          style: "https://tiles.openfreemap.org/styles/positron",
+          attribution: credits,
+        }).addTo(m);
+        return;
+      } catch (_) { /* WebGL indisponible : on prend le fond raster */ }
+    }
+
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 16, attribution: "Fond de carte Esri, HERE, Garmin, OpenStreetMap" }
+    ).addTo(m);
+  }
+  poserFondDeCarte(map);
+
+  L.control.zoom({ position: "bottomright" }).addTo(map);
+
+  const ACCENT = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#8C4A94";
+
+  // Pastille maison a la place du gros marqueur bleu de Leaflet, qui jurait
+  // avec le reste de la page.
+  const iconeZone = L.divIcon({
+    className: "zone-pin",
+    html: '<span class="zone-pin-dot"></span>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+
+  /**
+   * Sur telephone, un doigt pose sur la carte deplace la carte et non la
+   * page : on reste bloque a mi-parcours sans comprendre pourquoi. La carte
+   * demarre donc inerte, sous un voile qui dit comment la reveiller, et se
+   * rendort des qu'on touche ailleurs.
+   */
+  function initCarteTactile() {
+    const tactile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+    if (!tactile) return;
+
+    const voile = document.createElement("button");
+    voile.type = "button";
+    voile.className = "map-voile";
+    voile.innerHTML = "<span>Touche la carte pour la deplacer</span>";
+    document.getElementById("map").appendChild(voile);
+
+    const gestes = [map.dragging, map.touchZoom, map.doubleClickZoom];
+    let eveillee = false;
+
+    function endormir() {
+      if (!eveillee) return;
+      eveillee = false;
+      gestes.forEach((g) => g.disable());
+      voile.hidden = false;
+    }
+
+    gestes.forEach((g) => g.disable());
+
+    voile.addEventListener("click", () => {
+      eveillee = true;
+      gestes.forEach((g) => g.enable());
+      voile.hidden = true;
+    });
+
+    document.addEventListener("pointerdown", (e) => {
+      if (!e.target.closest("#map")) endormir();
+    });
+  }
+  initCarteTactile();
 
   let zones = []; // {id?, label, lat, lng, rayon_km, marker, circle}
 
   function addZoneMarker(zone) {
-    const marker = L.marker([zone.lat, zone.lng], { draggable: true }).addTo(map);
+    const marker = L.marker([zone.lat, zone.lng], { draggable: true, icon: iconeZone }).addTo(map);
     const circle = L.circle([zone.lat, zone.lng], {
       radius: zone.rayon_km * 1000,
-      color: "#8C4A94",
-      fillOpacity: 0.08,
+      color: ACCENT,
+      weight: 1.5,
+      fillColor: ACCENT,
+      fillOpacity: 0.1,
     }).addTo(map);
 
     marker.on("drag", (e) => {
@@ -329,22 +442,121 @@
   }
   updateAtsButtonState();
 
+  // Encadre de mise en garde : le score ATS n'a pas le meme sens selon le
+  // metier. Dans les filieres creatives, le CV est lu par un humain et le
+  // parti pris visuel est justement l'argument, pas un defaut a corriger.
+  const ATS_PORTEE_HTML = `
+    <details class="ats-portee">
+      <summary>Est-ce que ce score compte pour ton metier ?</summary>
+      <p>
+        Ce scanner mesure une seule chose : est-ce qu'un logiciel de tri
+        automatique arrive a lire ton CV. Ce n'est pas une note de qualite, et
+        selon le secteur ca ne pese pas du tout pareil.
+      </p>
+      <p>
+        <strong>Le score compte vraiment</strong> quand tu postules via des
+        plateformes et de gros services RH : informatique, ingenierie, finance,
+        commercial, logistique, fonctions support, grands groupes, cabinets de
+        recrutement et interim. La, un CV mal lu est ecarte avant meme qu'un
+        humain l'ouvre.
+      </p>
+      <p>
+        <strong>Le score compte beaucoup moins</strong> en design, direction
+        artistique, illustration, architecture, mode, audiovisuel, evenementiel
+        ou artisanat. Un designer qui rend un CV tout sobre en une colonne se
+        prive de son meilleur argument : dans ces metiers la mise en page fait
+        partie de la candidature, elle est lue par un humain, et le portfolio
+        pese plus lourd que n'importe quel mot-cle. Un score bas n'y est pas un
+        probleme en soi.
+      </p>
+      <p class="ats-portee-astuce">
+        La parade si tu es dans ce cas : garde ton CV travaille pour les envois
+        directs, le portfolio et les salons, et prepare a cote une version
+        sobre, une colonne, texte selectionnable, uniquement pour les depots sur
+        plateforme. Meme contenu, deux emballages.
+      </p>
+    </details>
+  `;
+
+  function atsCheckHtml(c, ouvert) {
+    const icone = c.pass ? "✓" : "✕";
+    const corps = [
+      c.detail ? `<p class="ats-check-detail">${escapeHtml(c.detail)}</p>` : "",
+      c.action ? `<p class="ats-check-action"><strong>A faire :</strong> ${escapeHtml(c.action)}</p>` : "",
+    ].join("");
+
+    if (!corps) {
+      return `<li class="ats-check ${c.pass ? "is-pass" : "is-fail"}">
+        <div class="ats-check-head"><span class="ats-icon">${icone}</span><span class="ats-check-label">${escapeHtml(c.label)}</span></div>
+      </li>`;
+    }
+    return `<li class="ats-check ${c.pass ? "is-pass" : "is-fail"}">
+      <details ${ouvert ? "open" : ""}>
+        <summary class="ats-check-head"><span class="ats-icon">${icone}</span><span class="ats-check-label">${escapeHtml(c.label)}</span></summary>
+        ${corps}
+      </details>
+    </li>`;
+  }
+
   function renderAtsResult(resultat) {
     atsPanel.hidden = false;
+
+    // Format non analysable ici : un seul message, pas de score.
     if (resultat.score === null) {
-      atsPanel.innerHTML = `<p class="ats-note">${escapeHtml(resultat.checks[0].detail || resultat.checks[0].label)}</p>`;
+      const b = resultat.blocage || {};
+      atsPanel.innerHTML = `
+        <p class="ats-blocage"><strong>${escapeHtml(b.label || "Analyse impossible")}</strong></p>
+        ${b.action ? `<p class="ats-check-action">${escapeHtml(b.action)}</p>` : ""}
+        ${ATS_PORTEE_HTML}
+      `;
       return;
     }
-    const niveauLabel = { good: "ATS-friendly", warn: "A ameliorer", bad: "Risque eleve" }[resultat.niveau];
+
+    const niveauLabel = {
+      good: "Lisible par un ATS",
+      warn: "Lisible, avec des reserves",
+      bad: "Risque d'etre mal lu",
+    }[resultat.niveau];
+
+    // On rededuit la liste depuis les checks plutot que de faire confiance a
+    // resultat.aRegarder : le panneau et le score restent d'accord entre eux
+    // meme si le scanner evolue.
+    const aRegarder = resultat.checks
+      .filter((c) => !c.pass)
+      .sort((a, b) => (b.poids || 0) - (a.poids || 0));
+    const reussis = resultat.checks.filter((c) => c.pass);
+    const resume = aRegarder.length
+      ? `${aRegarder.length} point${aRegarder.length > 1 ? "s" : ""} a corriger, du plus penalisant au moins genant.`
+      : "Rien a corriger cote lisibilite machine.";
+
     atsPanel.innerHTML = `
       <div class="ats-score-row">
         <div class="ats-score-badge is-${resultat.niveau}">${resultat.score}</div>
-        <div class="ats-score-label"><strong>${niveauLabel}</strong><br>Score indicatif sur 100</div>
+        <div class="ats-score-label">
+          <strong>${niveauLabel}</strong><br>
+          Score de lisibilite sur 100. ${escapeHtml(resume)}
+        </div>
       </div>
-      <ul class="ats-checks">
-        ${resultat.checks.map((c) => `<li class="${c.pass ? "" : "is-fail"}"><span class="ats-icon">${c.pass ? "✓" : "✕"}</span>${escapeHtml(c.label)}</li>`).join("")}
-      </ul>
-      <p class="ats-note">Analyse indicative, executee dans ton navigateur — aucun contenu du CV n'est envoye a un serveur externe. Elle ne garantit pas le passage d'un ATS reel, mais repere les blocages les plus frequents.</p>
+
+      ${aRegarder.length ? `
+        <h4 class="ats-group-title">Ce qu'il faut ameliorer</h4>
+        <p class="ats-group-sub">Touche une ligne pour voir quoi changer, et pourquoi.</p>
+        <ul class="ats-checks">${aRegarder.map((c, i) => atsCheckHtml(c, i === 0)).join("")}</ul>
+      ` : ""}
+
+      ${reussis.length ? `
+        <h4 class="ats-group-title">Ce qui passe deja</h4>
+        <ul class="ats-checks">${reussis.map((c) => atsCheckHtml(c, false)).join("")}</ul>
+      ` : ""}
+
+      ${ATS_PORTEE_HTML}
+
+      <p class="ats-note">
+        Analyse indicative, calculee dans ton navigateur : aucun contenu de ton
+        CV n'est envoye ailleurs. Elle ne garantit pas le passage d'un vrai ATS,
+        chaque editeur a ses propres regles, mais elle repere les blocages les
+        plus courants.
+      </p>
     `;
   }
 
@@ -384,6 +596,34 @@
   // ------------------------------------------------------------------
   // Enregistrer
   // ------------------------------------------------------------------
+  /**
+   * Les erreurs Supabase sont ecrites pour un developpeur : "Invalid key:
+   * 8508.../1789..._CV.pdf" ne dit rien a personne et, sur mobile, ce pave
+   * rouge occupe la moitie de l'ecran. On les traduit en une phrase courte
+   * qui dit quoi faire, le detail technique reste dans la console.
+   */
+  function messageErreurLisible(err) {
+    const brut = (err && (err.message || err.error_description)) || "";
+    const b = brut.toLowerCase();
+
+    if (b.includes("invalid key")) {
+      return "Le nom de ton fichier bloque l'envoi. Renomme-le simplement (lettres, chiffres et tirets) puis reessaie.";
+    }
+    if (b.includes("payload too large") || b.includes("entity too large") || b.includes("exceeded the maximum")) {
+      return "Fichier trop lourd pour l'envoi. Allege ton CV ou reexporte-le en PDF compresse.";
+    }
+    if (b.includes("row-level security") || b.includes("jwt") || b.includes("not authenticated")) {
+      return "Ta session a expire. Reconnecte-toi, puis enregistre de nouveau.";
+    }
+    if (b.includes("failed to fetch") || b.includes("networkerror") || b.includes("network request failed")) {
+      return "Connexion perdue pendant l'enregistrement. Verifie ton reseau et reessaie.";
+    }
+    if (b.includes("bucket not found")) {
+      return "L'espace de stockage des CV n'est pas accessible. Reessaie dans un moment.";
+    }
+    return "L'enregistrement n'a pas abouti. Reessaie dans un moment.";
+  }
+
   const btnSave = document.getElementById("btn-save");
   const btnSaveLabel = btnSave.querySelector(".btn-label");
 
@@ -398,7 +638,7 @@
 
     const discordUserId = discordAutoId || document.getElementById("discord-user-id").value.trim();
     if (discordUserId && !/^\d{15,25}$/.test(discordUserId)) {
-      saveStatus.textContent = "ID Discord invalide — ce sont uniquement des chiffres (ex. 123456789012345678).";
+      saveStatus.textContent = "ID Discord invalide : ce sont uniquement des chiffres (ex. 123456789012345678).";
       saveStatus.className = "field-status field-status-error";
       btnSave.classList.remove("is-loading");
       btnSaveLabel.innerHTML = `<span class="btn-label-text">Enregistrer</span>`;
@@ -411,7 +651,7 @@
       let cvPath = profile?.cv_path;
       let cvFilename = profile?.cv_filename;
       if (pendingCvFile) {
-        const path = `${user.id}/${Date.now()}_${pendingCvFile.name}`;
+        const path = `${user.id}/${Date.now()}_${nomDeFichierSur(pendingCvFile.name)}`;
         const { error: upErr } = await supa.storage.from("cvs").upload(path, pendingCvFile, { upsert: true });
         if (upErr) throw upErr;
         cvPath = path;
@@ -463,7 +703,7 @@
       }, 1800);
     } catch (err) {
       console.error(err);
-      saveStatus.textContent = "Erreur : " + err.message;
+      saveStatus.textContent = messageErreurLisible(err);
       saveStatus.className = "field-status field-status-error";
       btnSave.classList.remove("is-loading");
       btnSaveLabel.innerHTML = `<span class="btn-label-text">Enregistrer</span>`;
@@ -494,9 +734,18 @@
   function updateStats() {
     const semaineDepuis = Date.now() - 7 * 24 * 3600 * 1000;
     const visibles = allResults.filter((r) => r.interet !== false);
-    document.getElementById("stat-nouvelles").textContent = visibles.filter((r) => !r.vu).length;
-    document.getElementById("stat-semaine").textContent = visibles.filter((r) => r.vu && new Date(r.created_at).getTime() >= semaineDepuis).length;
+    const nouvelles = visibles.filter((r) => !r.vu).length;
+    const semaine = visibles.filter((r) => r.vu && new Date(r.created_at).getTime() >= semaineDepuis).length;
+
+    document.getElementById("stat-nouvelles").textContent = nouvelles;
+    document.getElementById("stat-semaine").textContent = semaine;
     document.getElementById("stat-attente").textContent = visibles.filter((r) => r.postule).length;
+
+    // "1 nouvelles offres" se lisait mal : les libelles s'accordent au compte.
+    document.getElementById("stat-nouvelles-label").textContent =
+      nouvelles > 1 ? "nouvelles offres" : "nouvelle offre";
+    document.getElementById("stat-semaine-label").textContent =
+      semaine > 1 ? "vues cette semaine" : "vue cette semaine";
   }
 
   function reseauPanelHtml(employeur) {
@@ -514,7 +763,7 @@
     const SEPT_JOURS = 7 * 24 * 3600 * 1000;
     if (!r.postule || !r.postule_at) return "";
     if (Date.now() - new Date(r.postule_at).getTime() < SEPT_JOURS) return "";
-    const message = `Bonjour, je me permets de relancer suite a ma candidature pour le poste de ${r.titre || "..."} chez ${r.employeur || "..."} — je reste tres interesse(e) et disponible pour en echanger. Bonne journee.`;
+    const message = `Bonjour, je me permets de relancer suite a ma candidature pour le poste de ${r.titre || "..."} chez ${r.employeur || "..."}. Je reste tres interesse(e) et disponible pour en echanger. Bonne journee.`;
     return `
       <button class="chip-relance relance-btn" data-id="${r.id}">Relance conseillee (J+7)</button>
       <div class="relance-panel" hidden>
@@ -536,14 +785,14 @@
     if (!list.length) {
       resultsContainer.innerHTML = allResults.length
         ? `<p class="empty-state">Rien a afficher avec ce filtre.</p>`
-        : `<p class="empty-state">Rien pour l'instant — la veille tourne deux fois par jour, reviens un peu plus tard.</p>`;
+        : `<p class="empty-state">Rien pour l'instant : la veille tourne deux fois par jour, reviens un peu plus tard.</p>`;
       updateStats();
       return;
     }
 
     resultsContainer.innerHTML = list.map((r) => `
       <div class="result-item ${r.vu ? "" : "is-new"}" data-id="${r.id}">
-        <a class="result-link" href="${r.url}" target="_blank" rel="noopener noreferrer">
+        <a class="result-link" href="${escapeHtml(r.url || "#")}" target="_blank" rel="noopener noreferrer">
           <div class="result-score">${r.score ?? "–"}</div>
           <div class="result-body">
             <div class="result-title-row">

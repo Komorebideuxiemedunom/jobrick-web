@@ -8,7 +8,7 @@
   --ink-quiet: #9A8FA0;
   --border: rgba(28, 21, 32, .13);
 
-  /* Accent — mauve stylise (a la place de l'orange de la reference) */
+  /* Accent : mauve stylise (a la place de l'orange de la reference) */
   --accent: #8C4A94;
   --accent-hover: #723C79;
   --accent-deep: #3E2145;
@@ -80,7 +80,21 @@ p { line-height: 1.6; margin: 0 0 12px; }
   color: var(--accent);
   font-size: 16px;
 }
-.nav-pill-user { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--ink-muted); }
+.nav-pill-user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0; /* sans ca, l'email long refuse de retrecir et ejecte le bouton */
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.nav-pill-user #user-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-pill-logo { flex-shrink: 0; }
+#btn-logout { flex-shrink: 0; white-space: nowrap; }
 
 .btn-ghost {
   background: transparent;
@@ -94,7 +108,9 @@ p { line-height: 1.6; margin: 0 0 12px; }
   cursor: pointer;
   transition: border-color .2s, background .2s;
 }
-.btn-ghost:hover { border-color: var(--accent); background: var(--accent-soft); }
+@media (hover: hover) {
+  .btn-ghost:hover { border-color: var(--accent); background: var(--accent-soft); }
+}
 
 /* ---------- Formes geometriques + blobs organiques ---------- */
 .shape-field {
@@ -348,7 +364,10 @@ body.landing { margin: 0; }
   cursor: pointer;
   transition: border-color .2s, background .2s;
 }
-.dropzone:hover, .dropzone-over { border-color: var(--accent); background: var(--accent-soft); }
+.dropzone-over { border-color: var(--accent); background: var(--accent-soft); }
+@media (hover: hover) {
+  .dropzone:hover { border-color: var(--accent); background: var(--accent-soft); }
+}
 .dropzone p { margin: 4px 0; }
 .dropzone-hint { color: var(--ink-muted); font-size: 12px; }
 .cv-filename { font-size: 15px; }
@@ -358,7 +377,12 @@ body.landing { margin: 0; }
 .field-status-error { color: var(--error); }
 
 /* Map + zones */
-.zone-search { position: relative; margin-bottom: 14px; }
+/* La liste de suggestions doit passer au-dessus de la carte. Leaflet empile
+   ses propres calques jusqu'a z-index 700 ; comme #map ne creait aucun
+   contexte d'empilement, ces calques se comparaient directement au z-index de
+   la liste (20) et gagnaient. On enferme donc Leaflet dans son propre
+   contexte, et on remonte la recherche au-dessus. */
+.zone-search { position: relative; z-index: 30; margin-bottom: 14px; }
 .zone-search input[type="text"] {
   width: 100%;
   background: var(--surface-alt);
@@ -372,7 +396,7 @@ body.landing { margin: 0; }
 .zone-search input[type="text"]:focus { outline: none; border-color: var(--accent); }
 .zone-search-results {
   position: absolute;
-  z-index: 20;
+  z-index: 40;
   top: calc(100% + 6px);
   left: 0;
   right: 0;
@@ -397,6 +421,9 @@ body.landing { margin: 0; }
 .zone-search-results li.is-active { background: var(--accent-soft); }
 
 #map {
+  position: relative;
+  z-index: 0;
+  isolation: isolate; /* confine les calques Leaflet, cf. .zone-search */
   height: 300px;
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -527,7 +554,9 @@ input[type="url"] { margin-top: 10px; }
   cursor: pointer;
   transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
 }
-.btn-primary:hover { transform: translateY(-2px); background: var(--accent-hover); box-shadow: var(--shadow-lift); }
+@media (hover: hover) {
+  .btn-primary:hover { transform: translateY(-2px); background: var(--accent-hover); box-shadow: var(--shadow-lift); }
+}
 .btn-primary:disabled { cursor: default; transform: none; }
 .btn-primary .btn-label { display: inline-flex; align-items: center; gap: 9px; }
 .btn-primary .spinner {
@@ -564,7 +593,8 @@ input[type="url"] { margin-top: 10px; }
   color: var(--ink);
   font-family: var(--font);
   font-size: 13px;
-  padding: 7px 10px;
+  /* marge a droite pour la fleche native, sinon elle mord sur le libelle */
+  padding: 7px 28px 7px 10px;
 }
 .results-toggle {
   display: flex;
@@ -588,7 +618,9 @@ input[type="url"] { margin-top: 10px; }
   cursor: pointer;
   transition: border-color .2s, background .2s;
 }
-.btn-export:hover { border-color: var(--accent); background: var(--accent-soft); }
+@media (hover: hover) {
+  .btn-export:hover { border-color: var(--accent); background: var(--accent-soft); }
+}
 .btn-export:disabled { opacity: .45; cursor: default; }
 
 .empty-state { color: var(--ink-muted); font-size: 14px; }
@@ -695,7 +727,9 @@ input[type="url"] { margin-top: 10px; }
 
 /* ---------- Actions sur une offre : postule / reseautage / relance ---------- */
 .result-item { position: relative; border-bottom: 1px solid var(--border); padding: 14px 14px 14px 20px; transition: background .15s; }
-.result-item:hover { background: var(--surface-alt); }
+@media (hover: hover) {
+  .result-item:hover { background: var(--surface-alt); }
+}
 .result-item:last-child { border-bottom: none; }
 .result-item.is-new::before {
   content: "";
@@ -719,7 +753,9 @@ input[type="url"] { margin-top: 10px; }
   cursor: pointer;
   transition: border-color .2s, background .2s, color .2s;
 }
-.chip-btn:hover { border-color: var(--accent); color: var(--accent); }
+@media (hover: hover) {
+  .chip-btn:hover { border-color: var(--accent); color: var(--accent); }
+}
 .chip-btn.is-active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .chip-relance {
   font-size: 11.5px; font-weight: 600;
@@ -761,7 +797,9 @@ input[type="url"] { margin-top: 10px; }
   box-shadow: var(--shadow-card);
   padding: 26px;
   display: flex; flex-direction: column;
-  touch-action: none;
+  /* pan-y et non none : le doigt garde le droit de faire defiler la page
+     verticalement, seul le glissement horizontal est capte par la carte. */
+  touch-action: pan-y;
   cursor: grab;
   user-select: none;
 }
@@ -791,9 +829,66 @@ input[type="url"] { margin-top: 10px; }
   box-shadow: var(--shadow-card);
   transition: transform .15s ease;
 }
-.swipe-btn:hover { transform: scale(1.08); }
+@media (hover: hover) {
+  .swipe-btn:hover { transform: scale(1.08); }
+}
 .swipe-btn--no { color: var(--error); }
 .swipe-btn--yes { color: var(--ok); }
+
+/* ---------- Carte : habillage maison ---------- */
+.leaflet-container { font-family: var(--font); background: var(--surface-alt); }
+.leaflet-control-zoom a {
+  color: var(--ink) !important;
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+.leaflet-control-zoom a:first-child { border-radius: 8px 8px 0 0; }
+.leaflet-control-zoom a:last-child { border-radius: 0 0 8px 8px; }
+.leaflet-bar { border: none !important; box-shadow: 0 2px 10px rgba(28,21,32,.14) !important; }
+.leaflet-control-attribution {
+  background: rgba(255,255,255,.78) !important;
+  font-size: 10px;
+  color: var(--ink-quiet);
+}
+.leaflet-control-attribution a { color: var(--ink-muted); }
+
+/* Pastille de zone, a la place du marqueur bleu par defaut de Leaflet */
+.zone-pin { background: none; border: none; }
+.zone-pin-dot {
+  display: block;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(62,33,69,.45);
+  cursor: grab;
+}
+
+/* Voile tactile : la carte ne capte le doigt qu'apres un appui volontaire,
+   sinon elle confisque le defilement de la page (cf. initCarteTactile). */
+.map-voile {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgba(28,21,32,.32);
+  font-family: var(--font);
+  cursor: pointer;
+  padding: 0;
+}
+.map-voile[hidden] { display: none; }
+.map-voile span {
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-card);
+}
 
 /* ---------- Scanner ATS ---------- */
 .cv-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
@@ -809,26 +904,133 @@ input[type="url"] { margin-top: 10px; }
   cursor: pointer;
   transition: background .2s, color .2s;
 }
-.btn-scan:hover { background: var(--accent); color: var(--accent-ink); }
+@media (hover: hover) {
+  .btn-scan:hover { background: var(--accent); color: var(--accent-ink); }
+}
 .btn-scan:disabled { opacity: .5; cursor: default; }
+
+.cv-actions-hint { font-size: 12px; color: var(--ink-muted); margin: 8px 0 0; line-height: 1.55; }
+.results-actions { display: flex; align-items: center; gap: 10px; }
+
 .ats-panel { margin-top: 16px; padding: 18px; border-radius: var(--radius-md); background: var(--surface-alt); }
-.ats-score-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.ats-score-badge { font-family: var(--font-display); font-size: 26px; padding: 8px 18px; border-radius: var(--radius-md); line-height: 1; }
+.ats-score-row { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.ats-score-badge {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  padding: 8px 18px;
+  border-radius: var(--radius-md);
+  line-height: 1;
+}
 .ats-score-badge.is-good { background: rgba(31,139,92,.12); color: var(--ok); }
 .ats-score-badge.is-warn { background: rgba(197,138,16,.12); color: #8A5A0A; }
 .ats-score-badge.is-bad { background: rgba(192,57,43,.12); color: var(--error); }
-.ats-score-label { font-size: 13px; color: var(--ink-muted); }
-.ats-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
-.ats-checks li { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--ink); }
-.ats-checks li .ats-icon { flex-shrink: 0; }
-.ats-checks li.is-fail { color: var(--ink-muted); }
-.ats-note { font-size: 11.5px; color: var(--ink-muted); margin-top: 12px; line-height: 1.6; }
+.ats-score-label { font-size: 13px; color: var(--ink-muted); line-height: 1.5; }
+.ats-score-label strong { color: var(--ink); font-size: 14px; }
+
+.ats-group-title {
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+  margin: 18px 0 2px;
+}
+.ats-group-title:first-of-type { margin-top: 0; }
+.ats-group-sub { font-size: 12px; color: var(--ink-muted); margin: 0 0 10px; }
+
+.ats-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ats-check {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.ats-check.is-fail { border-color: rgba(192,57,43,.28); }
+.ats-check > details > summary { list-style: none; cursor: pointer; }
+.ats-check > details > summary::-webkit-details-marker { display: none; }
+.ats-check-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.ats-check > details > summary.ats-check-head::after {
+  content: "+";
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ink-quiet);
+}
+.ats-check > details[open] > summary.ats-check-head::after { content: "\2212"; }
+.ats-check .ats-icon { flex-shrink: 0; font-weight: 700; }
+.ats-check.is-pass .ats-icon { color: var(--ok); }
+.ats-check.is-fail .ats-icon { color: var(--error); }
+.ats-check-label { min-width: 0; }
+.ats-check-detail,
+.ats-check-action {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+  margin: 0 14px 12px 34px;
+}
+.ats-check-action { color: var(--ink); }
+.ats-check-action strong { color: var(--accent); }
+
+.ats-blocage { font-size: 14px; margin: 0 0 8px; }
+
+/* Portee du score selon le metier : replie par defaut, c'est une nuance,
+   pas une alerte. */
+.ats-portee {
+  margin-top: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 14px;
+}
+.ats-portee > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 12px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ats-portee > summary::-webkit-details-marker { display: none; }
+.ats-portee > summary::after {
+  content: "+";
+  margin-left: auto;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ink-quiet);
+}
+.ats-portee[open] > summary::after { content: "\2212"; }
+.ats-portee p { font-size: 12.5px; line-height: 1.65; color: var(--ink-muted); margin: 0 0 10px; }
+.ats-portee > p:last-of-type { margin-bottom: 14px; }
+.ats-portee strong { color: var(--ink); }
+.ats-portee-astuce {
+  background: var(--accent-soft);
+  margin-bottom: 14px !important;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--ink) !important;
+}
+
+.ats-note { font-size: 11.5px; color: var(--ink-quiet); margin: 14px 0 0; line-height: 1.6; }
 
 @media (max-width: 600px) {
   .nav-pill-links { display: none; }
   .stats-row { grid-template-columns: 1fr; }
   .result-actions, .reseau-panel, .relance-panel { margin-left: 0; }
-  .nav-pill { padding: 10px 10px 10px 18px; }
+  .nav-pill { gap: 10px; padding: 10px 10px 10px 18px; }
   .dash-main { padding: 24px 14px 70px; }
   .card { padding: 20px; }
   .hero-mauve { margin: 0; border-radius: 0 0 var(--radius-lg) var(--radius-lg); padding: 100px 20px 70px; }
@@ -841,7 +1043,51 @@ input[type="url"] { margin-top: 10px; }
   .shape { opacity: .08; }
   .shape--diamond, .shape--square { display: none; }
   .blob { opacity: calc(var(--blob-opacity, .1) * .6); }
-  .results-toolbar { align-items: flex-start; }
+
+  /* La barre d'outils des offres tenait sur une ligne trop etroite : le
+     select et les deux boutons se marchaient dessus. */
+  .results-toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .results-filters { justify-content: space-between; gap: 10px; }
+  .results-actions { width: 100%; }
+  .results-actions .btn-export { flex: 1; min-height: 40px; }
+  .results-filters select { flex: 1; min-width: 0; min-height: 40px; padding-right: 30px; }
+  .results-toggle { font-size: 12.5px; }
+
+  /* L'email pousse le bouton hors de la pilule : on lui laisse au plus la
+     moitie de la largeur et on coupe proprement. */
+  .nav-pill-user { gap: 8px; flex: 1; justify-content: flex-end; }
+  .nav-pill-user #user-email { max-width: 42vw; font-size: 12px; }
+  #btn-logout { padding: 9px 14px; }
+
+  /* Le bouton d'enregistrement et son message tenaient sur une ligne, si
+     bien qu'une erreur un peu longue ecrasait le bouton. */
+  .save-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .save-bar .btn-primary { width: 100%; }
+  .save-bar .field-status { margin-top: 0; text-align: center; }
+
+  /* iOS zoome automatiquement sur un champ dont le texte fait moins de
+     16px, et ne dezoome jamais ensuite. */
+  textarea,
+  input[type="text"],
+  input[type="url"],
+  input[type="number"],
+  .zone-search input[type="text"],
+  #discord-manual-block input[type="text"] { font-size: 16px; }
+
+  /* Cibles tactiles : les pastilles faisaient 24px de haut, en dessous de
+     ce qu'un pouce vise de facon fiable. */
+  .chip-btn, .chip-relance { min-height: 36px; padding: 8px 14px; }
+  .zone-del { min-width: 40px; min-height: 40px; font-size: 16px; }
+  .zone-item { padding: 8px 10px; }
+  .results-toggle input, .switch-row input[type="checkbox"] { width: 22px; height: 22px; }
+
+  /* Le mode tri prenait toute la hauteur utile du telephone. */
+  .swipe-deck { height: 300px; }
+  .swipe-card { padding: 20px; }
+
+  #map { height: 260px; }
+  .ats-panel { padding: 14px; }
+  .ats-check-detail, .ats-check-action { margin-left: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

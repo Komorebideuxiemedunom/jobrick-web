@@ -1,17 +1,17 @@
-# Jobrick — site web
+# Jobrick, le site web
 
 Tableau de bord pour piloter la veille Jobrick : connexion Google, dépôt du
 CV, zones de recherche sur carte, préférences, notifications.
 
 Ce dépôt est volontairement séparé de [Jobrick](https://github.com/Komorebideuxiemedunom/Jobrick)
 (privé) : il ne contient que le code du site, aucune donnée personnelle. Les
-données (CV, zones, profils) vivent dans Supabase, pas ici — c'est pour ça
+données (CV, zones, profils) vivent dans Supabase, pas ici, c'est pour ça
 qu'il peut être public sans risque.
 
 ## État actuel
 
 - ✅ Projet Supabase créé et configuré (tables, sécurité par ligne, bucket
-  CV) — `assets/js/config.js` pointe déjà dessus.
+  CV). `assets/js/config.js` pointe déjà dessus.
 - ✅ Hébergement GitHub Pages sur ce dépôt.
 - ⏳ Connexion Google : à activer (voir ci-dessous).
 - ⏳ Connexion Discord : à activer (voir ci-dessous).
@@ -49,7 +49,7 @@ en message privé : il faut en plus que le bot et toi partagiez un serveur
 Discord (contrainte de l'API Discord, pas de Jobrick). Ce dernier point,
 ainsi que la création du bot lui-même, est documenté dans le dépôt privé
 [Jobrick](https://github.com/Komorebideuxiemedunom/Jobrick) (§10 du
-README) — c'est lui qui envoie réellement les messages, deux fois par jour,
+README) : c'est lui qui envoie réellement les messages, deux fois par jour,
 en même temps que le mail.
 
 Une fois connecté via Discord, ton identifiant numérique est récupéré
@@ -65,7 +65,7 @@ Depuis le 18 septembre 2026, le bot Python de
 les comptes créés ici (CV, zones, mots-clés, préférences), au lieu de
 tourner sur un profil unique figé dans son propre code. Chaque compte actif
 (qui a coché mail et/ou Discord) est cherché et prévenu individuellement,
-deux fois par jour — voir le `README.md` de Jobrick, **§0** et **§8**.
+deux fois par jour, voir le `README.md` de Jobrick, **§0** et **§8**.
 
 Pour recevoir tes offres, ton compte doit avoir : un CV déposé (sinon la
 notation se fait sur tes mots-clés seuls, moins précise), au moins une zone

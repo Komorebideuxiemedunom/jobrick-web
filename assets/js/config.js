@@ -1,5 +1,5 @@
 /**
- * Config Supabase — a remplir une fois le projet cree.
+ * Config Supabase, a remplir une fois le projet cree.
  * Voir SETUP.md pour la marche a suivre complete.
  *
  * Ces deux valeurs sont publiques par design (la securite vient des

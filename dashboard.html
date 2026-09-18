@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Tableau de bord — Jobrick</title>
+  <title>Tableau de bord Jobrick</title>
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
   <link href="assets/css/style.css" rel="stylesheet">
 </head>
 <body class="dashboard">
@@ -53,11 +54,11 @@
     <div class="stats-row anim-hidden" data-anim>
       <div class="stat-card">
         <div class="stat-value" id="stat-nouvelles">0</div>
-        <div class="stat-label">nouvelles offres</div>
+        <div class="stat-label" id="stat-nouvelles-label">nouvelles offres</div>
       </div>
       <div class="stat-card">
         <div class="stat-value" id="stat-semaine">0</div>
-        <div class="stat-label">vues cette semaine</div>
+        <div class="stat-label" id="stat-semaine-label">vues cette semaine</div>
       </div>
       <div class="stat-card">
         <div class="stat-value" id="stat-attente">0</div>
@@ -79,7 +80,7 @@
         <input type="file" id="cv-input" accept=".pdf,.doc,.docx" hidden>
         <div id="dropzone-empty">
           <p><strong>Glisse ton CV ici</strong> ou clique pour choisir un fichier</p>
-          <p class="dropzone-hint">PDF, DOC ou DOCX — 10 Mo max</p>
+          <p class="dropzone-hint">PDF, DOC ou DOCX, 10 Mo max</p>
         </div>
         <div id="dropzone-filled" hidden>
           <p class="cv-filename">📄 <span id="cv-filename-text"></span></p>
@@ -92,6 +93,10 @@
         <button id="btn-scan-ats" class="btn-scan" disabled>Scanner mon CV (ATS)</button>
         <span class="field-status" id="ats-status"></span>
       </div>
+      <p class="cv-actions-hint">
+        Verifie si un logiciel de tri automatique arrive a lire ton CV, et te
+        dit quoi corriger. Tout se passe dans ton navigateur.
+      </p>
       <div id="ats-panel" class="ats-panel" hidden></div>
     </section>
 
@@ -123,7 +128,7 @@
         </div>
         <h2>Ce que tu cherches</h2>
       </div>
-      <p class="card-sub">Intitules de poste, mots-cles — texte libre, une idee par ligne.</p>
+      <p class="card-sub">Intitules de poste, mots-cles : texte libre, une idee par ligne.</p>
       <textarea id="job-keywords" rows="4" placeholder="Chef de projet numerique&#10;Charge de communication&#10;UX/UI designer"></textarea>
     </section>
 
@@ -153,15 +158,15 @@
       </label>
 
       <div id="discord-connected-badge" class="discord-connected-badge" hidden>
-        ✓ Connecte via Discord — <span id="discord-connected-name"></span>. Le bot pourra t'ecrire en prive.
+        ✓ Connecte via Discord, <span id="discord-connected-name"></span>. Le bot pourra t'ecrire en prive.
       </div>
 
       <div id="discord-manual-block" hidden>
-        <input type="text" id="discord-user-id" placeholder="Ton identifiant Discord — que des chiffres, ex. 123456789012345678">
+        <input type="text" id="discord-user-id" placeholder="Ton identifiant Discord (que des chiffres, ex. 123456789012345678)">
         <div class="discord-id-help" id="discord-user-id-hint">
           <p>
             Tu t'es connecte avec Google, donc Jobrick ne connait pas encore
-            ton compte Discord. <strong>Ton pseudo ne suffit pas</strong> —
+            ton compte Discord. <strong>Ton pseudo ne suffit pas</strong> :
             un message prive automatique a besoin de ton
             <strong>identifiant numerique</strong> (18 chiffres, invisible
             par defaut).
@@ -170,7 +175,7 @@
             Reglages → Vie privee et securite → active <strong>Mode developpeur</strong>,
             puis clic droit sur ton profil → <strong>Copier l'identifiant</strong>.
             Il faut aussi partager un serveur avec le bot Jobrick pour qu'il
-            puisse t'ecrire — le lien d'invitation est dans le mail de
+            puisse t'ecrire, le lien d'invitation est dans le mail de
             bienvenue.
           </p>
           <a href="https://support.discord.com/hc/en-us/articles/206346498" target="_blank" rel="noopener noreferrer">
@@ -215,8 +220,10 @@
             Masquer les offres vues
           </label>
         </div>
-        <button id="btn-swipe-mode" class="btn-export">Mode tri</button>
-        <button id="btn-export" class="btn-export" disabled>Exporter en CSV</button>
+        <div class="results-actions">
+          <button id="btn-swipe-mode" class="btn-export">Mode tri</button>
+          <button id="btn-export" class="btn-export" disabled>Exporter en CSV</button>
+        </div>
       </div>
 
       <div id="swipe-section" hidden>
@@ -235,12 +242,16 @@
   <footer class="dash-footer">
     La veille tourne <strong>deux fois par jour</strong>. Chaque offre est notee
     par une IA selon ton CV et tes preferences, puis tu es prevenu par les
-    canaux choisis ci-dessus — les resultats restent aussi consultables ici
+    canaux choisis ci-dessus. Les resultats restent aussi consultables ici
     a tout moment.
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Fond de carte vectoriel OpenFreeMap. Si ces deux scripts manquent a
+       l'appel, dashboard.js retombe tout seul sur un fond raster. -->
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
