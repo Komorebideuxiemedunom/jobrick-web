@@ -936,6 +936,17 @@
     const item = allResults.find((r) => r.id === id);
     if (!item || item.vu) return;
     item.vu = true;
+
+    // On retouche la seule ligne concernee au lieu de re-rendre la liste :
+    // un re-rendu ferait disparaitre l'offre sous le doigt quand "Masquer
+    // les offres vues" est coche, juste au moment ou on vient de l'ouvrir.
+    // Sans ca, le badge "Nouveau" restait affiche jusqu'au rechargement.
+    const ligne = resultsContainer.querySelector(`.result-item[data-id="${CSS.escape(id)}"]`);
+    if (ligne) {
+      ligne.classList.remove("is-new");
+      ligne.querySelector(".result-new-badge")?.remove();
+    }
+
     updateStats();
     const { error } = await supa.from("job_results").update({ vu: true }).eq("id", id);
     if (error) console.error("marquage vu:", error);
